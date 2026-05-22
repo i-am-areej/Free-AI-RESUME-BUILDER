@@ -393,7 +393,6 @@ html,body{height:100%;font-family:var(--font-ui);background:var(--bg);color:var(
     <button class="sb-act" onclick="openModal('m-api')" id="sb-ai-btn">🔑 &nbsp;<span id="sb-ai-lbl">Set API Key</span></button>
     <button class="sb-act" onclick="openModal('m-tpl')">🎨 &nbsp;Templates</button>
     <button class="sb-act" onclick="openModal('m-col')">🎨 &nbsp;Accent Color</button>
-    <button class="sb-act" onclick="openModal('m-pub')" style="color:var(--teal);border-color:rgba(15,212,181,.25)">🚀 &nbsp;Publish Free</button>
   </div>
 </aside>
 
@@ -434,107 +433,8 @@ html,body{height:100%;font-family:var(--font-ui);background:var(--bg);color:var(
 </div>
 
 
-<!-- ── PUBLISH MODAL ── -->
-<div class="overlay" id="m-pub" onclick="closeIf(event,'m-pub')">
-  <div class="modal" style="width:520px">
-    <div class="modal-hdr">
-      <h2>🚀 Publish for Free</h2>
-      <button class="modal-close" onclick="closeModal('m-pub')">✕</button>
-    </div>
-    <p class="modal-sub">This resume builder is a single HTML file. Deploy it free in under 2 minutes — no server, no code needed.</p>
 
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <!-- Netlify Drop -->
-      <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:14px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span style="font-size:22px">⚡</span>
-          <div>
-            <div style="font-size:13.5px;font-weight:700">Netlify Drop</div>
-            <div style="font-size:11px;color:var(--ok);font-weight:600">EASIEST · 60 seconds · 100% free</div>
-          </div>
-        </div>
-        <ol style="font-size:12px;color:var(--tm);line-height:2;padding-left:16px">
-          <li>Download this file as <strong style="color:var(--tx)">ai-resume-builder.html</strong></li>
-          <li>Go to <strong style="color:var(--gold)">netlify.com/drop</strong></li>
-          <li>Drag and drop the HTML file onto the page</li>
-          <li>Your site goes live instantly with a free URL like <em style="color:var(--teal)">random-name.netlify.app</em></li>
-          <li>Optional: set a custom subdomain in Netlify settings</li>
-        </ol>
-        <a href="https://app.netlify.com/drop" target="_blank" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:8px 14px;background:var(--gold);color:#08080A;border-radius:var(--r1);font-size:12px;font-weight:700;text-decoration:none">Open Netlify Drop ↗</a>
-      </div>
-
-      <!-- GitHub Pages -->
-      <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:14px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span style="font-size:22px">🐙</span>
-          <div>
-            <div style="font-size:13.5px;font-weight:700">GitHub Pages</div>
-            <div style="font-size:11px;color:var(--tm);font-weight:600">Free · Custom domain support · Version control</div>
-          </div>
-        </div>
-        <ol style="font-size:12px;color:var(--tm);line-height:2;padding-left:16px">
-          <li>Create a new repo on <strong style="color:var(--gold)">github.com</strong></li>
-          <li>Rename this file to <strong style="color:var(--tx)">index.html</strong> and upload it</li>
-          <li>Go to repo <strong>Settings → Pages → Source → main branch</strong></li>
-          <li>Live at <em style="color:var(--teal)">yourusername.github.io/repo-name</em></li>
-        </ol>
-      </div>
-
-      <!-- Cloudflare Pages -->
-      <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:14px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span style="font-size:22px">☁️</span>
-          <div>
-            <div style="font-size:13.5px;font-weight:700">Cloudflare Pages</div>
-            <div style="font-size:11px;color:var(--tm);font-weight:600">Free · Fastest CDN · pages.cloudflare.com</div>
-          </div>
-        </div>
-        <ol style="font-size:12px;color:var(--tm);line-height:2;padding-left:16px">
-          <li>Go to <strong style="color:var(--gold)">pages.cloudflare.com</strong> → Create project</li>
-          <li>Choose <strong>Direct Upload</strong></li>
-          <li>Upload the HTML file, name the project</li>
-          <li>Live at <em style="color:var(--teal)">project.pages.dev</em></li>
-        </ol>
-      </div>
-    </div>
-
-    <div style="margin-top:12px;background:var(--gold-glow);border:1px solid rgba(232,192,106,.15);border-radius:var(--r1);padding:11px;font-size:11.5px;color:var(--tm);line-height:1.6">
-      <strong style="color:var(--gold)">💡 Sharing tip:</strong> Once live, share your URL anywhere — job boards, WhatsApp, LinkedIn. Works on mobile and desktop. No login required for users.
-    </div>
-  </div>
-</div>
-
-<!-- ── UPLOAD CV MODAL ── -->
-<div class="overlay" id="m-upload" onclick="closeIf(event,'m-upload')">
-  <div class="modal" style="width:500px">
-    <div class="modal-hdr">
-      <h2>📤 Upload Existing CV</h2>
-      <button class="modal-close" onclick="closeModal('m-upload')">✕</button>
-    </div>
-    <p class="modal-sub">Upload your current CV (PDF or Word) and AI will extract all details and fill the form automatically — no manual typing needed.</p>
-    <div id="upload-body">
-      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('cv-file-input').click()" ondragover="dzDragOver(event)" ondragleave="dzDragLeave()" ondrop="dzDrop(event)">
-        <input type="file" id="cv-file-input" accept=".pdf,.doc,.docx" onchange="handleFileSelect(event)">
-        <div class="dz-icon">📄</div>
-        <h3>Drop your CV here or click to browse</h3>
-        <p>Supports PDF, DOC, DOCX · Max 10MB</p>
-      </div>
-      <div style="margin-top:12px;font-size:11.5px;color:var(--td);text-align:center">
-        Requires API key to be set. Your CV content is sent to Claude for parsing only.
-      </div>
-    </div>
-    <div id="parse-progress" style="display:none">
-      <div class="parse-progress">
-        <div class="parse-step" id="ps1"><div class="ps-icon" id="ps1-icon">1</div><span id="ps1-text">Reading file...</span></div>
-        <div class="parse-step" id="ps2"><div class="ps-icon" id="ps2-icon">2</div><span id="ps2-text">Extracting text content</span></div>
-        <div class="parse-step" id="ps3"><div class="ps-icon" id="ps3-icon">3</div><span id="ps3-text">AI parsing your details</span></div>
-        <div class="parse-step" id="ps4"><div class="ps-icon" id="ps4-icon">4</div><span id="ps4-text">Filling in your resume</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── TEMPLATE MODAL ── -->
+<!-- ── TEMPLATE MODAL<!-- ── TEMPLATE MODAL ── -->
 <div class="overlay" id="m-tpl" onclick="closeIf(event,'m-tpl')">
   <div class="modal" style="width:560px">
     <div class="modal-hdr">
