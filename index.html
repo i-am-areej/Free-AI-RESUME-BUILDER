@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your AI Resume Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090E;--s1:#0C0F18;--s2:#10141F;--s3:#151B28;--s4:#1B2234;
+  --b1:#182030;--b2:#1F2C40;--b3:#2A3C58;
+  --gold:#E8C06A;--gold2:#D4A84E;--gold-dim:rgba(232,192,106,.1);--gold-glow:rgba(232,192,106,.06);
+  --tx:#E4EBF7;--tm:#7B90AD;--td:#3A4E6A;
+  --err:#F06060;--ok:#45D483;--warn:#F0A840;
+  --teal:#0FD4B5;
+  --font-ui:'Syne',sans-serif;--font-serif:'Libre Baskerville',serif;--font-mono:'DM Mono',monospace;
+  --r1:6px;--r2:10px;--r3:14px;
+}
+html,body{height:100%;font-family:var(--font-ui);background:var(--bg);color:var(--tx);overflow:hidden}
+#app{display:grid;grid-template-columns:215px 460px 1fr;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sb{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{padding:16px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.sb-logo-top{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.sb-mark{width:28px;height:28px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-style:italic;font-weight:700;font-size:14px;color:#08080A;letter-spacing:-0.04em;flex-shrink:0}
+.sb-name{font-size:13.5px;font-weight:700;letter-spacing:-0.03em;color:var(--tx);line-height:1}
+.sb-name em{color:var(--gold);font-style:normal}
+.sb-tag{font-size:10px;color:var(--td);font-weight:500;padding-left:37px;letter-spacing:.02em}
+.sb-nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r1);cursor:pointer;border:1px solid transparent;transition:all .18s;font-size:12.5px;font-weight:500;color:var(--tm)}
+.sb-item:hover{background:var(--s3);color:var(--tx)}
+.sb-item.on{background:var(--gold-dim);border-color:rgba(232,192,106,.25);color:var(--gold);font-weight:600}
+.sb-item.done{color:var(--ok);opacity:.75}
+.sb-dot{width:22px;height:22px;border-radius:50%;background:var(--s3);border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;transition:all .18s}
+.sb-item.on .sb-dot{background:var(--gold);border-color:var(--gold);color:#08080A}
+.sb-item.done .sb-dot{background:var(--ok);border-color:var(--ok);color:#08080A}
+.sb-div{height:1px;background:var(--b1);margin:6px 0}
+.sb-foot{padding:10px 8px;border-top:1px solid var(--b1);display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.sb-act{display:flex;align-items:center;gap:7px;padding:8px 10px;background:transparent;border:1px solid var(--b2);border-radius:var(--r1);color:var(--tm);font-size:11.5px;font-weight:500;font-family:var(--font-ui);cursor:pointer;transition:all .18s;text-align:left;width:100%}
+.sb-act:hover{background:var(--s3);color:var(--tx);border-color:var(--b3)}
+.sb-act.primary{background:var(--gold-dim);border-color:rgba(232,192,106,.3);color:var(--gold)}
+.sb-act.primary:hover{background:rgba(232,192,106,.18)}
+
+/* ── BUILDER ── */
+.bld{background:var(--bg);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.bld-head{padding:16px 22px 12px;border-bottom:1px solid var(--b1);background:var(--s1);flex-shrink:0}
+.bld-title{font-family:var(--font-serif);font-size:20px;font-weight:700;color:var(--tx);letter-spacing:-0.02em;margin-bottom:2px}
+.bld-desc{font-size:11.5px;color:var(--tm);line-height:1.5}
+.ats-row{display:flex;align-items:center;gap:9px;margin-top:10px}
+.ats-lbl{font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}
+.ats-track{flex:1;height:5px;background:var(--s4);border-radius:3px;overflow:hidden}
+.ats-fill{height:100%;border-radius:3px;transition:width .5s ease,background .3s}
+.ats-num{font-size:11.5px;font-weight:700;font-family:var(--font-mono);min-width:48px;text-align:right}
+.prog-rail{height:2px;background:var(--b1);flex-shrink:0}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));transition:width .4s cubic-bezier(.4,0,.2,1)}
+.bld-scroll{flex:1;overflow-y:auto;padding:18px 22px;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+.bld-scroll::-webkit-scrollbar{width:4px}
+.bld-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+.bld-foot{padding:12px 22px;border-top:1px solid var(--b1);background:var(--s1);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.bld-ctr{font-size:11px;color:var(--td);font-family:var(--font-mono)}
+
+/* ── FORM ELEMENTS ── */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:0 13px}
+.fg1{grid-template-columns:1fr}
+.f{margin-bottom:13px}
+.f label{display:block;font-size:10.5px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.f input,.f textarea,.f select{width:100%;background:var(--s2);border:1px solid var(--b1);color:var(--tx);padding:8px 11px;border-radius:var(--r1);font-size:13px;font-family:var(--font-ui);outline:none;transition:border .18s,background .18s;line-height:1.5}
+.f input:focus,.f textarea:focus,.f select:focus{border-color:var(--gold);background:var(--s3)}
+.f input::placeholder,.f textarea::placeholder{color:var(--td)}
+.f textarea{resize:vertical}
+.chk{display:flex;align-items:center;gap:7px;margin:5px 0 9px;cursor:pointer}
+.chk input[type=checkbox]{width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
+.chk span{font-size:12px;color:var(--tm)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:9px 16px;border-radius:var(--r1);font-size:13px;font-weight:600;font-family:var(--font-ui);cursor:pointer;border:none;transition:all .16s;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.btn-gold{background:var(--gold);color:#08080A}
+.btn-gold:hover:not(:disabled){background:#F0CC7A;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--tm);border:1px solid var(--b2)}
+.btn-ghost:hover{background:var(--s3);color:var(--tx);border-color:var(--b3)}
+.btn-teal{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(232,192,106,.22)}
+.btn-teal:hover{background:rgba(232,192,106,.18)}
+.btn-red{background:rgba(240,96,96,.09);color:var(--err);border:1px solid rgba(240,96,96,.2)}
+.btn-red:hover{background:rgba(240,96,96,.18)}
+.btn-sm{padding:6px 11px;font-size:11.5px}
+.btn-upload{background:linear-gradient(135deg,rgba(15,212,181,.12),rgba(232,192,106,.08));border:1px dashed rgba(15,212,181,.4);color:var(--teal);padding:14px 20px;border-radius:var(--r2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;width:100%;justify-content:center}
+.btn-upload:hover{background:linear-gradient(135deg,rgba(15,212,181,.2),rgba(232,192,106,.12));border-color:var(--teal)}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:15px;margin-bottom:12px;transition:border-color .2s}
+.card:hover{border-color:var(--b3)}
+.card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.card-lbl{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em}
+.card-acts{display:flex;gap:5px;align-items:center}
+
+/* ── TIP / ALERT BOXES ── */
+.tip{background:var(--gold-glow);border:1px solid rgba(232,192,106,.15);border-radius:var(--r1);padding:10px 12px;font-size:11.5px;color:var(--tm);line-height:1.6;margin-bottom:14px;display:flex;gap:8px}
+.tip strong{color:var(--gold)}
+.alert-ok{background:rgba(69,212,131,.08);border:1px solid rgba(69,212,131,.25);border-radius:var(--r2);padding:14px 16px;margin-bottom:14px}
+.alert-ok h4{font-size:13px;font-weight:700;color:var(--ok);margin-bottom:4px}
+.alert-ok p{font-size:12px;color:var(--tm)}
+
+/* ── SECTION DIVIDER ── */
+.sec-div{font-size:10.5px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.sec-div::after{content:'';flex:1;height:1px;background:var(--b1)}
+
+/* ── SPINNER ── */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:currentColor;border-radius:50%;animation:rot .6s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ── UPLOAD MODAL ── */
+.drop-zone{border:2px dashed var(--b3);border-radius:var(--r2);padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--teal);background:rgba(15,212,181,.05)}
+.drop-zone .dz-icon{font-size:36px;margin-bottom:10px}
+.drop-zone h3{font-size:14px;font-weight:600;margin-bottom:4px}
+.drop-zone p{font-size:12px;color:var(--tm)}
+.drop-zone input{display:none}
+.parse-progress{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:16px;margin-top:12px}
+.parse-step{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12.5px;color:var(--tm);border-bottom:1px solid var(--b1)}
+.parse-step:last-child{border-bottom:none}
+.parse-step .ps-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:var(--s3);border:1px solid var(--b2)}
+.parse-step.done .ps-icon{background:var(--ok);border-color:var(--ok);color:#07090E}
+.parse-step.active .ps-icon{background:var(--gold-dim);border-color:rgba(232,192,106,.3);color:var(--gold)}
+
+/* ── PREVIEW PANEL ── */
+.prv{background:#0E1220;display:flex;flex-direction:column;overflow:hidden}
+.prv-bar{padding:10px 14px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.prv-lbl{font-size:10px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;flex:1}
+.tpl-pills{display:flex;gap:3px;flex-wrap:wrap}
+.tpl-pill{padding:4px 8px;border-radius:5px;font-size:10.5px;font-weight:600;cursor:pointer;border:1px solid var(--b2);background:transparent;color:var(--tm);font-family:var(--font-ui);transition:all .16s}
+.tpl-pill.on{background:var(--gold-dim);border-color:rgba(232,192,106,.3);color:var(--gold)}
+.tpl-pill:hover:not(.on){background:var(--s3);color:var(--tx)}
+.dl-row{display:flex;gap:5px}
+.prv-scroll{flex:1;overflow-y:auto;padding:20px 12px;display:flex;flex-direction:column;align-items:center;scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+.prv-scroll::-webkit-scrollbar{width:4px}
+.prv-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+.resume-wrap{width:100%;max-width:700px;background:#fff;box-shadow:0 20px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04);border-radius:3px;overflow:hidden;transition:box-shadow .3s}
+.resume-wrap:hover{box-shadow:0 28px 100px rgba(0,0,0,.85)}
+
+/* ── DOWNLOAD STEP ── */
+.dl-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:14px 16px;margin-bottom:9px;display:flex;align-items:center;gap:12px;transition:border-color .2s}
+.dl-card:hover{border-color:var(--gold)}
+.dl-ico{font-size:24px;flex-shrink:0}
+.dl-inf h3{font-size:13px;font-weight:700;margin-bottom:2px}
+.dl-inf p{font-size:11px;color:var(--tm)}
+.dl-card .btn{margin-left:auto;flex-shrink:0}
+.check-list{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:13px;margin-top:4px}
+.ck-item{display:flex;gap:6px}
+.ck-item .ok{color:var(--ok);font-size:11px;flex-shrink:0;margin-top:2px}
+.ck-item h4{font-size:12px;font-weight:600;margin-bottom:1px}
+.ck-item p{font-size:10.5px;color:var(--tm)}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(5px);opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r3);padding:22px;width:520px;max-height:86vh;overflow-y:auto;transform:scale(.95);transition:transform .2s;box-shadow:0 20px 80px rgba(0,0,0,.7);scrollbar-width:thin;scrollbar-color:var(--b2) transparent}
+.overlay.open .modal{transform:scale(1)}
+.modal-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.modal-hdr h2{font-family:var(--font-serif);font-size:17px;font-weight:700;letter-spacing:-.02em}
+.modal-close{background:none;border:none;color:var(--tm);font-size:17px;cursor:pointer;transition:color .15s;padding:2px 4px}
+.modal-close:hover{color:var(--tx)}
+.modal-sub{font-size:12px;color:var(--tm);margin-bottom:16px;line-height:1.5}
+.tpl-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.tpl-card{border:2px solid var(--b2);border-radius:var(--r1);padding:9px;cursor:pointer;transition:all .18s;text-align:center}
+.tpl-card:hover{border-color:var(--gold);background:var(--s2)}
+.tpl-card.on{border-color:var(--gold);background:var(--gold-dim)}
+.tpl-thumb{width:100%;aspect-ratio:.72;border-radius:3px;overflow:hidden;margin-bottom:7px;border:1px solid var(--b1)}
+.tpl-nm{font-size:11px;font-weight:700;color:var(--tx)}
+.tpl-tag{font-size:9.5px;color:var(--tm);margin-top:2px}
+.color-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.c-sw{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s}
+.c-sw.on{border-color:#fff;transform:scale(1.18)}
+.c-sw:hover{transform:scale(1.1)}
+.info-box{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r1);padding:12px;font-size:11.5px;color:var(--tm);line-height:1.7}
+.info-box strong{color:var(--tx)}
+
+/* ════════════════════════════════════════
+   RESUME TEMPLATES
+════════════════════════════════════════ */
+
+/* T1: Classic Pro */
+.T1{font-family:Arial,sans-serif;color:#111;font-size:9.5pt;line-height:1.45}
+.T1-hdr{padding:24px 30px 18px;color:#fff}
+.T1-name{font-family:'Georgia',serif;font-size:26pt;font-weight:700;line-height:1;margin-bottom:4px}
+.T1-title{font-size:10.5pt;opacity:.75;letter-spacing:.05em;font-style:italic;margin-bottom:11px}
+.T1-cinfo{display:flex;flex-wrap:wrap;gap:5px 16px;font-size:8.5pt;opacity:.8}
+.T1-body{padding:18px 30px}
+.T1-sec{margin-bottom:14px}
+.T1-sh{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border-bottom:2px solid currentColor;padding-bottom:3px;margin-bottom:8px;position:relative}
+.T1-sh::after{content:'';position:absolute;bottom:-2px;left:0;width:32px;height:2px;background:#B8802A}
+.T1-sum{font-size:9.5pt;line-height:1.65;color:#333}
+.T1-exp{margin-bottom:9px}
+.T1-etop{display:flex;justify-content:space-between;align-items:flex-start}
+.T1-role{font-weight:700;font-size:10pt;color:#111}
+.T1-comp{font-size:9pt;font-style:italic;margin-top:1px}
+.T1-dates{font-size:8.5pt;color:#666;text-align:right;white-space:nowrap;padding-left:8px;flex-shrink:0}
+.T1-ul{margin:3px 0 0 14px;padding:0}
+.T1-ul li{font-size:9pt;color:#333;margin-bottom:2px;line-height:1.5}
+.T1-edu{margin-bottom:7px}
+.T1-etop2{display:flex;justify-content:space-between}
+.T1-deg{font-weight:700;font-size:10pt}
+.T1-sch{font-size:9pt;font-style:italic}
+.T1-tags{display:flex;flex-wrap:wrap;gap:4px}
+.T1-tag{border:1px solid #CBD5E0;border-radius:3px;padding:1px 7px;font-size:8.5pt;color:#333;background:#F7FAFC}
+.T1-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+.T1-cert{font-size:9pt;color:#333;padding:2px 0;display:flex;gap:5px}
+.T1-cert::before{content:'▸';color:#B8802A;font-size:8pt;flex-shrink:0;padding-top:1px}
+.T1-lang{display:flex;flex-wrap:wrap;gap:0 18px;font-size:9pt;color:#333}
+.T1-proj{margin-bottom:8px}
+.T1-pnm{font-weight:700;font-size:10pt}
+.T1-purl{font-size:8.5pt}
+.T1-pdsc{font-size:9pt;color:#333;line-height:1.5;margin-top:2px}
+
+/* T2: Sidebar Pro */
+.T2{font-family:Arial,sans-serif;color:#111;font-size:9.5pt;line-height:1.45;display:grid;grid-template-columns:195px 1fr;min-height:600px}
+.T2-sb{padding:24px 15px;color:#fff}
+.T2-main{padding:24px 22px}
+.T2-nm{font-family:'Georgia',serif;font-size:18pt;font-weight:700;line-height:1.1;margin-bottom:3px}
+.T2-ttl{font-size:9pt;opacity:.6;font-style:italic;letter-spacing:.04em;margin-bottom:15px;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.12)}
+.T2-ssh{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.12);opacity:.9}
+.T2-ssec{margin-bottom:16px}
+.T2-ci{display:flex;gap:5px;font-size:8pt;opacity:.78;margin-bottom:5px;line-height:1.4;word-break:break-all;align-items:flex-start}
+.T2-sk{margin-bottom:4px;font-size:8.5pt;opacity:.82}
+.T2-ln{display:flex;justify-content:space-between;font-size:8.5pt;opacity:.78;margin-bottom:4px}
+.T2-ct{font-size:8pt;opacity:.72;margin-bottom:4px;padding-left:9px;position:relative;line-height:1.4}
+.T2-ct::before{content:'◆';position:absolute;left:0;font-size:5.5pt;top:2px;opacity:.7}
+.T2-sh{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;border-bottom:2px solid currentColor;padding-bottom:3px;margin-bottom:9px;position:relative}
+.T2-sh::after{content:'';position:absolute;bottom:-2px;left:0;width:28px;height:2px;background:#0ED4B5}
+.T2-sec{margin-bottom:15px}
+.T2-sum{font-size:9.5pt;color:#333;line-height:1.65}
+.T2-exp{margin-bottom:9px}
+.T2-etop{display:flex;justify-content:space-between;align-items:flex-start}
+.T2-role{font-weight:700;font-size:10pt}
+.T2-comp{font-size:9pt;font-style:italic}
+.T2-dates{font-size:8.5pt;color:#777;white-space:nowrap;padding-left:8px;flex-shrink:0}
+.T2-ul{margin:3px 0 0 13px}
+.T2-ul li{font-size:9pt;color:#333;margin-bottom:2px;line-height:1.5}
+.T2-edu{margin-bottom:7px}
+.T2-deg{font-weight:700;font-size:10pt}
+.T2-sch{font-size:9pt;font-style:italic}
+
+/* T3: Minimal */
+.T3{font-family:Arial,sans-serif;color:#111;font-size:9.5pt;line-height:1.5;padding:30px 36px}
+.T3-nm{font-family:'Georgia',serif;font-size:24pt;font-weight:700;color:#000;letter-spacing:-.02em;margin-bottom:2px}
+.T3-ttl{font-size:11pt;color:#555;letter-spacing:.06em;margin-bottom:9px}
+.T3-cinfo{display:flex;flex-wrap:wrap;gap:0 18px;font-size:8.5pt;color:#555;margin-bottom:16px;padding-bottom:13px;border-bottom:2px solid #000}
+.T3-sh{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#000;margin:14px 0 5px}
+.T3-rule{height:1px;background:#DDD;margin-bottom:7px}
+.T3-sum{font-size:9.5pt;color:#333;line-height:1.7}
+.T3-exp{margin-bottom:8px}
+.T3-etop{display:flex;justify-content:space-between}
+.T3-role{font-weight:700;font-size:10pt}
+.T3-comp{font-size:9pt;color:#333;font-style:italic}
+.T3-dates{font-size:8.5pt;color:#888;white-space:nowrap}
+.T3-ul{margin:3px 0 0 14px}
+.T3-ul li{font-size:9pt;color:#333;margin-bottom:2px}
+.T3-edu{display:flex;justify-content:space-between;margin-bottom:7px}
+.T3-deg{font-weight:700;font-size:10pt}
+.T3-sch{font-size:9pt;font-style:italic;color:#333}
+.T3-tag{display:inline-block;border:1px solid #CCC;border-radius:2px;padding:1px 7px;margin:2px;font-size:8.5pt}
+.T3-cert{font-size:9pt;color:#333;margin-bottom:3px;padding-left:11px;position:relative}
+.T3-cert::before{content:'—';position:absolute;left:0;color:#999}
+.T3-lang{display:flex;flex-wrap:wrap;gap:0 20px;font-size:9.5pt}
+
+/* T4: Tech Pro */
+.T4{font-family:'Courier New',monospace;color:#111;font-size:9.5pt;line-height:1.5}
+.T4-hdr{background:#0D1117;color:#fff;padding:22px 28px;border-bottom:3px solid #0FD4B5}
+.T4-nm{font-family:Arial,sans-serif;font-size:22pt;font-weight:800;color:#fff;letter-spacing:-.02em;margin-bottom:2px}
+.T4-nm span{color:#0FD4B5}
+.T4-ttl{font-size:10pt;color:rgba(255,255,255,.55);font-family:Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;font-weight:400}
+.T4-cinfo{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:8pt;color:rgba(255,255,255,.6)}
+.T4-cinfo span{display:flex;align-items:center;gap:3px}
+.T4-cinfo a{color:#0FD4B5;text-decoration:none}
+.T4-body{padding:18px 28px}
+.T4-sec{margin-bottom:14px}
+.T4-sh{font-family:Arial,sans-serif;font-size:8.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:#0D1117;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.T4-sh::before{content:'//';color:#0FD4B5;font-size:9pt}
+.T4-sh::after{content:'';flex:1;height:1px;background:#E2E8F0;margin-left:4px}
+.T4-sum{font-size:9.5pt;line-height:1.7;color:#333;font-family:Arial,sans-serif}
+.T4-exp{margin-bottom:10px}
+.T4-etop{display:flex;justify-content:space-between;align-items:flex-start}
+.T4-role{font-family:Arial,sans-serif;font-weight:700;font-size:10pt;color:#0D1117}
+.T4-comp{font-family:Arial,sans-serif;font-size:9pt;color:#0FD4B5;margin-top:1px}
+.T4-dates{font-size:8.5pt;color:#666;background:#F1F5F9;padding:1px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0}
+.T4-ul{margin:4px 0 0 14px}
+.T4-ul li{font-family:Arial,sans-serif;font-size:9pt;color:#333;margin-bottom:2px;line-height:1.5}
+.T4-edu{margin-bottom:8px}
+.T4-deg{font-family:Arial,sans-serif;font-weight:700;font-size:10pt}
+.T4-sch{font-family:Arial,sans-serif;font-size:9pt;color:#555}
+.T4-tags{display:flex;flex-wrap:wrap;gap:4px;font-family:Arial,sans-serif}
+.T4-tag{background:#EBF8FF;border:1px solid #BEE3F8;color:#2B6CB0;padding:2px 8px;font-size:8pt;border-radius:3px;font-family:'Courier New',monospace}
+.T4-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.T4-cert{font-family:Arial,sans-serif;font-size:9pt;color:#333;margin-bottom:3px;padding-left:12px;position:relative}
+.T4-cert::before{content:'›';position:absolute;left:0;color:#0FD4B5;font-size:12pt;line-height:1;top:-1px}
+.T4-lang{font-family:Arial,sans-serif;display:flex;flex-wrap:wrap;gap:0 18px;font-size:9pt;color:#333}
+.T4-proj{margin-bottom:9px}
+.T4-pnm{font-family:Arial,sans-serif;font-weight:700;font-size:10pt;color:#0D1117}
+.T4-ptech{font-size:8pt;background:#F1F5F9;padding:1px 6px;border-radius:3px;color:#555;margin-left:6px;font-family:'Courier New',monospace}
+.T4-purl{font-size:8.5pt;color:#0FD4B5;font-family:Arial,sans-serif}
+.T4-pdsc{font-family:Arial,sans-serif;font-size:9pt;color:#333;line-height:1.5;margin-top:2px}
+
+/* T5: Executive Elite */
+.T5{font-family:'Georgia',serif;color:#111;font-size:9.5pt;line-height:1.5;padding:32px 38px;background:#FFFEF9}
+.T5-top{text-align:center;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid #111}
+.T5-nm{font-size:28pt;font-weight:700;color:#111;letter-spacing:-.01em;line-height:1;margin-bottom:6px}
+.T5-ttl{font-size:10.5pt;color:#8B6914;letter-spacing:.12em;text-transform:uppercase;font-family:Arial,sans-serif;font-weight:600;margin-bottom:10px}
+.T5-cinfo{display:flex;justify-content:center;flex-wrap:wrap;gap:0 20px;font-size:8.5pt;color:#555;font-family:Arial,sans-serif}
+.T5-cinfo span::before{content:'·';margin-right:8px;color:#8B6914}
+.T5-cinfo span:first-child::before{content:''}
+.T5-sec{margin-bottom:16px}
+.T5-sh{display:flex;align-items:center;gap:10px;font-family:Arial,sans-serif;font-size:8.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:#8B6914;margin-bottom:10px}
+.T5-sh::before,.T5-sh::after{content:'';flex:1;height:1px;background:#D4A84E;opacity:.5}
+.T5-sum{font-size:9.5pt;color:#333;line-height:1.7;text-align:justify;font-style:italic}
+.T5-exp{margin-bottom:10px}
+.T5-etop{display:flex;justify-content:space-between;align-items:flex-start}
+.T5-role{font-weight:700;font-size:10pt;font-family:Arial,sans-serif}
+.T5-comp{font-size:9pt;color:#555;font-style:italic}
+.T5-dates{font-size:8.5pt;color:#777;font-family:Arial,sans-serif;white-space:nowrap;padding-left:8px}
+.T5-ul{margin:4px 0 0 16px}
+.T5-ul li{font-size:9pt;color:#333;margin-bottom:3px;line-height:1.55;font-family:Arial,sans-serif}
+.T5-edu{margin-bottom:9px}
+.T5-deg{font-weight:700;font-size:10pt;font-family:Arial,sans-serif}
+.T5-sch{font-size:9pt;color:#555;font-style:italic}
+.T5-skills{font-family:Arial,sans-serif;font-size:9.5pt;color:#333;line-height:1.8}
+.T5-tag{display:inline-block;border-bottom:1px solid #D4A84E;padding:0 2px;margin:0 3px;font-size:9pt}
+.T5-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}
+.T5-cert{font-family:Arial,sans-serif;font-size:9pt;color:#333;margin-bottom:4px;padding-left:12px;position:relative}
+.T5-cert::before{content:'◈';position:absolute;left:0;color:#8B6914;font-size:7.5pt;top:1px}
+.T5-lang{font-family:Arial,sans-serif;display:flex;flex-wrap:wrap;gap:0 22px;font-size:9pt}
+
+/* T6: Modern Stripe */
+.T6{font-family:Arial,sans-serif;color:#111;font-size:9.5pt;line-height:1.5}
+.T6-hdr{padding:24px 28px 20px;position:relative;border-left:6px solid #0F2952}
+.T6-nm{font-size:23pt;font-weight:800;color:#0F2952;letter-spacing:-.02em;line-height:1;margin-bottom:3px}
+.T6-ttl{font-size:10.5pt;color:#555;font-weight:400;margin-bottom:10px;letter-spacing:.03em}
+.T6-cinfo{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:8.5pt;color:#444}
+.T6-cinfo span{display:flex;align-items:center;gap:4px}
+.T6-body{padding:14px 28px 24px}
+.T6-sec{margin-bottom:14px}
+.T6-sh{font-size:8.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#fff;background:#0F2952;display:inline-block;padding:3px 10px;margin-bottom:8px;border-radius:3px}
+.T6-sum{font-size:9.5pt;color:#333;line-height:1.65}
+.T6-exp{margin-bottom:10px;padding-left:10px;border-left:2px solid #E2E8F0}
+.T6-etop{display:flex;justify-content:space-between;align-items:flex-start}
+.T6-role{font-weight:700;font-size:10pt;color:#0F2952}
+.T6-comp{font-size:9pt;color:#555;font-style:italic}
+.T6-dates{font-size:8pt;color:#fff;background:#0F2952;padding:1px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0}
+.T6-ul{margin:4px 0 0 14px}
+.T6-ul li{font-size:9pt;color:#333;margin-bottom:2px;line-height:1.5}
+.T6-edu{display:flex;justify-content:space-between;margin-bottom:8px;padding:8px 10px;background:#F8FAFC;border-radius:4px}
+.T6-deg{font-weight:700;font-size:10pt;color:#0F2952}
+.T6-sch{font-size:9pt;color:#555;font-style:italic}
+.T6-edu-dates{font-size:8.5pt;color:#777;white-space:nowrap}
+.T6-tags{display:flex;flex-wrap:wrap;gap:5px}
+.T6-tag{background:#EBF4FF;border:1px solid #BEE3F8;padding:2px 8px;font-size:8.5pt;color:#2C5282;border-radius:4px}
+.T6-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.T6-cert{font-size:9pt;color:#333;margin-bottom:3px;display:flex;align-items:flex-start;gap:5px}
+.T6-cert::before{content:'✦';color:#0F2952;font-size:7pt;flex-shrink:0;margin-top:2px}
+.T6-lang{display:flex;flex-wrap:wrap;gap:0 18px;font-size:9pt;color:#333}
+
+/* PRINT */
+@media print{
+  .sb,.bld,.prv-bar,.overlay{display:none!important}
+  #app{display:block}
+  .prv{background:#fff;display:block!important}
+  .prv-scroll{display:block;padding:0;overflow:visible}
+  .resume-wrap{max-width:100%;box-shadow:none;transform:none!important}
+  body{background:#fff;overflow:visible}
+  html,body{height:auto}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-top">
+      <div class="sb-mark">Ai</div>
+      <div class="sb-name">Your AI <em>Resume Builder</em></div>
+    </div>
+    <div class="sb-tag">Powered by Claude · ATS-Optimized</div>
+  </div>
+  <nav class="sb-nav" id="sb-nav"></nav>
+  <div class="sb-foot">
+    <button class="sb-act primary" onclick="openModal('m-upload')">📤 &nbsp;Upload Existing CV</button>
+    <div class="sb-div"></div>
+    <button class="sb-act" onclick="openModal('m-api')" id="sb-ai-btn">🔑 &nbsp;<span id="sb-ai-lbl">Set API Key</span></button>
+    <button class="sb-act" onclick="openModal('m-tpl')">🎨 &nbsp;Templates</button>
+    <button class="sb-act" onclick="openModal('m-col')">🎨 &nbsp;Accent Color</button>
+    <button class="sb-act" onclick="openModal('m-pub')" style="color:var(--teal);border-color:rgba(15,212,181,.25)">🚀 &nbsp;Publish Free</button>
+  </div>
+</aside>
+
+<!-- ── BUILDER ── -->
+<main class="bld">
+  <div class="bld-head">
+    <div class="bld-title" id="bld-title"></div>
+    <div class="bld-desc" id="bld-desc"></div>
+    <div class="ats-row">
+      <span class="ats-lbl">ATS Score</span>
+      <div class="ats-track"><div class="ats-fill" id="ats-fill"></div></div>
+      <span class="ats-num" id="ats-num"></span>
+    </div>
+  </div>
+  <div class="prog-rail"><div class="prog-fill" id="prog-fill"></div></div>
+  <div class="bld-scroll" id="bld-scroll"></div>
+  <div class="bld-foot">
+    <span class="bld-ctr" id="bld-ctr"></span>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-ghost" id="btn-back" onclick="prevStep()">← Back</button>
+      <button class="btn btn-gold" id="btn-next" onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+</main>
+
+<!-- ── PREVIEW ── -->
+<section class="prv">
+  <div class="prv-bar">
+    <span class="prv-lbl">📄 Live Preview</span>
+    <div class="tpl-pills" id="tpl-pills"></div>
+    <div class="dl-row">
+      <button class="btn btn-ghost btn-sm" onclick="dlWord()">⬇ Word</button>
+      <button class="btn btn-gold btn-sm" onclick="dlPDF()">⬇ PDF</button>
+    </div>
+  </div>
+  <div class="prv-scroll"><div class="resume-wrap" id="resume-wrap"></div></div>
+</section>
+</div>
+
+
+<!-- ── PUBLISH MODAL ── -->
+<div class="overlay" id="m-pub" onclick="closeIf(event,'m-pub')">
+  <div class="modal" style="width:520px">
+    <div class="modal-hdr">
+      <h2>🚀 Publish for Free</h2>
+      <button class="modal-close" onclick="closeModal('m-pub')">✕</button>
+    </div>
+    <p class="modal-sub">This resume builder is a single HTML file. Deploy it free in under 2 minutes — no server, no code needed.</p>
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <!-- Netlify Drop -->
+      <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:22px">⚡</span>
+          <div>
+            <div style="font-size:13.5px;font-weight:700">Netlify Drop</div>
+            <div style="font-size:11px;color:var(--ok);font-weight:600">EASIEST · 60 seconds · 100% free</div>
+          </div>
+        </div>
+        <ol style="font-size:12px;color:var(--tm);line-height:2;padding-left:16px">
+          <li>Download this file as <strong style="color:var(--tx)">ai-resume-builder.html</strong></li>
+          <li>Go to <strong style="color:var(--gold)">netlify.com/drop</strong></li>
+          <li>Drag and drop the HTML file onto the page</li>
+          <li>Your site goes live instantly with a free URL like <em style="color:var(--teal)">random-name.netlify.app</em></li>
+          <li>Optional: set a custom subdomain in Netlify settings</li>
+        </ol>
+        <a href="https://app.netlify.com/drop" target="_blank" style="display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:8px 14px;background:var(--gold);color:#08080A;border-radius:var(--r1);font-size:12px;font-weight:700;text-decoration:none">Open Netlify Drop ↗</a>
+      </div>
+
+      <!-- GitHub Pages -->
+      <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:22px">🐙</span>
+          <div>
+            <div style="font-size:13.5px;font-weight:700">GitHub Pages</div>
+            <div style="font-size:11px;color:var(--tm);font-weight:600">Free · Custom domain support · Version control</div>
+          </div>
+        </div>
+        <ol style="font-size:12px;color:var(--tm);line-height:2;padding-left:16px">
+          <li>Create a new repo on <strong style="color:var(--gold)">github.com</strong></li>
+          <li>Rename this file to <strong style="color:var(--tx)">index.html</strong> and upload it</li>
+          <li>Go to repo <strong>Settings → Pages → Source → main branch</strong></li>
+          <li>Live at <em style="color:var(--teal)">yourusername.github.io/repo-name</em></li>
+        </ol>
+      </div>
+
+      <!-- Cloudflare Pages -->
+      <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r2);padding:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <span style="font-size:22px">☁️</span>
+          <div>
+            <div style="font-size:13.5px;font-weight:700">Cloudflare Pages</div>
+            <div style="font-size:11px;color:var(--tm);font-weight:600">Free · Fastest CDN · pages.cloudflare.com</div>
+          </div>
+        </div>
+        <ol style="font-size:12px;color:var(--tm);line-height:2;padding-left:16px">
+          <li>Go to <strong style="color:var(--gold)">pages.cloudflare.com</strong> → Create project</li>
+          <li>Choose <strong>Direct Upload</strong></li>
+          <li>Upload the HTML file, name the project</li>
+          <li>Live at <em style="color:var(--teal)">project.pages.dev</em></li>
+        </ol>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;background:var(--gold-glow);border:1px solid rgba(232,192,106,.15);border-radius:var(--r1);padding:11px;font-size:11.5px;color:var(--tm);line-height:1.6">
+      <strong style="color:var(--gold)">💡 Sharing tip:</strong> Once live, share your URL anywhere — job boards, WhatsApp, LinkedIn. Works on mobile and desktop. No login required for users.
+    </div>
+  </div>
+</div>
+
+<!-- ── UPLOAD CV MODAL ── -->
+<div class="overlay" id="m-upload" onclick="closeIf(event,'m-upload')">
+  <div class="modal" style="width:500px">
+    <div class="modal-hdr">
+      <h2>📤 Upload Existing CV</h2>
+      <button class="modal-close" onclick="closeModal('m-upload')">✕</button>
+    </div>
+    <p class="modal-sub">Upload your current CV (PDF or Word) and AI will extract all details and fill the form automatically — no manual typing needed.</p>
+    <div id="upload-body">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('cv-file-input').click()" ondragover="dzDragOver(event)" ondragleave="dzDragLeave()" ondrop="dzDrop(event)">
+        <input type="file" id="cv-file-input" accept=".pdf,.doc,.docx" onchange="handleFileSelect(event)">
+        <div class="dz-icon">📄</div>
+        <h3>Drop your CV here or click to browse</h3>
+        <p>Supports PDF, DOC, DOCX · Max 10MB</p>
+      </div>
+      <div style="margin-top:12px;font-size:11.5px;color:var(--td);text-align:center">
+        Requires API key to be set. Your CV content is sent to Claude for parsing only.
+      </div>
+    </div>
+    <div id="parse-progress" style="display:none">
+      <div class="parse-progress">
+        <div class="parse-step" id="ps1"><div class="ps-icon" id="ps1-icon">1</div><span id="ps1-text">Reading file...</span></div>
+        <div class="parse-step" id="ps2"><div class="ps-icon" id="ps2-icon">2</div><span id="ps2-text">Extracting text content</span></div>
+        <div class="parse-step" id="ps3"><div class="ps-icon" id="ps3-icon">3</div><span id="ps3-text">AI parsing your details</span></div>
+        <div class="parse-step" id="ps4"><div class="ps-icon" id="ps4-icon">4</div><span id="ps4-text">Filling in your resume</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TEMPLATE MODAL ── -->
+<div class="overlay" id="m-tpl" onclick="closeIf(event,'m-tpl')">
+  <div class="modal" style="width:560px">
+    <div class="modal-hdr">
+      <h2>Choose Template</h2>
+      <button class="modal-close" onclick="closeModal('m-tpl')">✕</button>
+    </div>
+    <p class="modal-sub">6 professionally designed layouts. Your content stays intact when switching.</p>
+    <div class="tpl-grid" id="tpl-grid" style="grid-template-columns:1fr 1fr 1fr"></div>
+  </div>
+</div>
+
+<!-- ── COLOR MODAL ── -->
+<div class="overlay" id="m-col" onclick="closeIf(event,'m-col')">
+  <div class="modal" style="width:380px">
+    <div class="modal-hdr">
+      <h2>Accent Color</h2>
+      <button class="modal-close" onclick="closeModal('m-col')">✕</button>
+    </div>
+    <p class="modal-sub">Changes header and section accent throughout your resume.</p>
+    <div class="color-grid" id="col-grid"></div>
+    <div class="f"><label>Custom Color</label><input type="color" id="col-custom" style="height:38px;cursor:pointer" onchange="applyColor(this.value)"></div>
+  </div>
+</div>
+
+<!-- ── API KEY MODAL ── -->
+<div class="overlay" id="m-api" onclick="closeIf(event,'m-api')">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr">
+      <h2>🔑 AI Configuration</h2>
+      <button class="modal-close" onclick="closeModal('m-api')">✕</button>
+    </div>
+    <p class="modal-sub">Required for AI features: Generate Summary, Enhance Bullets, and Upload CV parsing.</p>
+    <div class="f">
+      <label>Anthropic API Key</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="font-family:var(--font-mono);font-size:12px" oninput="document.getElementById('api-save-err').textContent=''">
+    </div>
+    <div id="api-save-err" style="font-size:11.5px;color:var(--err);margin-bottom:10px;min-height:16px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-gold" style="flex:1" onclick="saveApiKey()">Save &amp; Enable AI</button>
+      <button class="btn btn-ghost" onclick="clearApiKey()">Clear</button>
+    </div>
+    <div class="info-box">
+      <strong>How to get your key:</strong><br>
+      1. Go to <strong style="color:var(--gold)">console.anthropic.com</strong><br>
+      2. Sign in → <strong>API Keys</strong> → Create key<br>
+      3. Copy and paste it above<br><br>
+      <span style="color:var(--td)">Key is saved in your browser's localStorage. All other features work without a key — only AI needs it.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+const APP = {
+  step: 0,
+  tpl: 'classic',
+  accent: '#0F2952',
+  loading: null,
+  apiKey: (()=>{ try{ return localStorage.getItem('rf_key')||''; }catch(e){ return ''; } })(),
+  d: {
+    p:{ name:'', title:'', email:'', phone:'', location:'', linkedin:'', github:'', website:'' },
+    summary:'',
+    exp:[{ id:1, role:'', company:'', start:'', end:'', current:false, bullets:'' }],
+    edu:[{ id:1, degree:'', field:'', school:'', start:'', end:'', gpa:'' }],
+    skills:'', langs:'', certs:'',
+    projects:[{ id:1, name:'', url:'', tech:'', desc:'' }],
+    showProj:false
+  }
+};
+
+const STEPS = [
+  { label:'Personal',   desc:'Your identity and contact info — the recruiter\'s first impression.' },
+  { label:'Summary',    desc:'A compelling 3–4 sentence pitch. Let AI draft it based on your experience.' },
+  { label:'Experience', desc:'Reverse chronological order. Strong action verbs. Quantified results.' },
+  { label:'Education',  desc:'Degrees, institutions, and academic achievements.' },
+  { label:'Skills',     desc:'Technical skills, certifications, languages, and optional projects.' },
+  { label:'Export',     desc:'Your recruiter-ready resume is done. Download it.' },
+];
+
+const TEMPLATES = [
+  { id:'classic',   name:'Classic Pro',     tag:'Corporate · Finance',    color:'#0F2952' },
+  { id:'sidebar',   name:'Sidebar Pro',     tag:'Tech · Product',         color:'#1A2940' },
+  { id:'minimal',   name:'Minimal',         tag:'Consulting · ATS-First', color:'#1A1A1A' },
+  { id:'tech',      name:'Tech Pro',        tag:'Developer · Engineer',   color:'#0D1117' },
+  { id:'executive', name:'Executive Elite', tag:'C-Suite · Senior Leader',color:'#5C4A00' },
+  { id:'stripe',    name:'Modern Stripe',   tag:'Creative · Startup',     color:'#0F2952' },
+];
+
+const PALETTE = [
+  '#0F2952','#1E3A8A','#164E63','#14532D','#7C2D12','#4C1D95',
+  '#831843','#064E3B','#1E1B4B','#374151','#7F1D1D','#0C4A6E',
+  '#0D5265','#2D3748','#5C4A00','#3D2B1F',
+];
+
+/* ══════════════════════════════════════════════
+   ATS SCORING
+══════════════════════════════════════════════ */
+
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function goStep(n){ APP.step=n; renderAll(); }
+function nextStep(){ if(APP.step<STEPS.length-1){ APP.step++; renderAll(); } }
+function prevStep(){ if(APP.step>0){ APP.step--; renderAll(); } }
+
+/* ══════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════ */
+function ev(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function bl(txt){
+  return (txt||'').split('\n').map(b=>b.trim()).filter(Boolean)
+    .map(b=>`<li>${esc(b.replace(/^[•\-\*]\s*/,''))}</li>`).join('');
+}
+function dateStr(e){ return [e.start, e.current?'Present':e.end].filter(Boolean).join(' – '); }
+
+/* ══════════════════════════════════════════════
+   STEP RENDERERS
+══════════════════════════════════════════════ */
+function stepPersonal(){
+  const p=APP.d.p;
+  return `
+  <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px">Personal Details</div>
+  <div style="font-size:11.5px;color:var(--tm);margin-bottom:16px">Your name, title and contact info — make it easy for recruiters to reach you fast.</div>
+  <div class="fg">
+    <div class="f"><label>Full Name *</label><input value="${ev(p.name)}" placeholder="Sarah Johnson" oninput="APP.d.p.name=this.value;renderResume();renderATS()"></div>
+    <div class="f"><label>Professional Title *</label><input value="${ev(p.title)}" placeholder="Senior Software Engineer" oninput="APP.d.p.title=this.value;renderResume()"></div>
+    <div class="f"><label>Email *</label><input type="email" value="${ev(p.email)}" placeholder="sarah@example.com" oninput="APP.d.p.email=this.value;renderResume();renderATS()"></div>
+    <div class="f"><label>Phone *</label><input value="${ev(p.phone)}" placeholder="+971 50 123 4567" oninput="APP.d.p.phone=this.value;renderResume();renderATS()"></div>
+    <div class="f"><label>Location</label><input value="${ev(p.location)}" placeholder="Dubai, UAE" oninput="APP.d.p.location=this.value;renderResume();renderATS()"></div>
+    <div class="f"><label>LinkedIn</label><input value="${ev(p.linkedin)}" placeholder="linkedin.com/in/username" oninput="APP.d.p.linkedin=this.value;renderResume();renderATS()"></div>
+    <div class="f"><label>GitHub</label><input value="${ev(p.github)}" placeholder="github.com/username" oninput="APP.d.p.github=this.value;renderResume()"></div>
+    <div class="f"><label>Portfolio / Website</label><input value="${ev(p.website)}" placeholder="yoursite.com" oninput="APP.d.p.website=this.value;renderResume()"></div>
+  </div>
+  <div id="ats-tips" style="margin-top:12px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r2);padding:11px"></div>`;
+}
+
+function stepSummary(){
+  return `
+  <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px">Professional Summary</div>
+  <div style="font-size:11.5px;color:var(--tm);margin-bottom:14px">3–4 sentences that sell you. Include title, years of experience, top skills, and one quantified win.</div>
+  <div class="tip"><span>💡</span><div>ATS tip: use your exact job title, core technology names, and a <strong>quantified achievement</strong>. Avoid filler: "results-driven", "dynamic", "passionate".</div></div>
+  <div class="f fg1">
+    <label>Summary</label>
+    <textarea rows="6" placeholder="Senior Software Engineer with 5+ years building scalable web platforms using PHP, Laravel, and Vue.js. Delivered a payment gateway processing $2M+ monthly, reduced API response times by 35% via Redis caching, and led a team of 4 to ship 3 major releases on schedule." oninput="APP.d.summary=this.value;renderResume();renderATS()">${ev(APP.d.summary)}</textarea>
+  </div>
+  <button class="btn btn-teal ${APP.loading==='sum'?'disabled':''}" onclick="aiSummary()" ${APP.loading==='sum'?'disabled':''}>
+    ${APP.loading==='sum'?'<span class="spin"></span> Generating…':(APP.apiKey ? '✦ Generate with Claude AI' : '✦ Smart Generate (no key needed)')}
+  </button>`;
+}
+
+function stepExperience(){
+  const exps=APP.d.exp;
+  return `
+  <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px">Work Experience</div>
+  <div style="font-size:11.5px;color:var(--tm);margin-bottom:14px">Reverse chronological. Use AI to enhance bullets with action verbs and measurable results.</div>
+  ${exps.map((x,i)=>`
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-lbl">Position ${i+1}</span>
+      <div class="card-acts">
+        <button class="btn btn-teal btn-sm ${APP.loading===`b${i}`?'disabled':''}" onclick="aiEnhance(${i})" ${APP.loading===`b${i}`?'disabled':''}>
+          ${APP.loading===`b${i}`?'<span class="spin"></span>':'✦'} ${APP.apiKey?'AI Enhance':'Smart Enhance'}
+        </button>
+        ${exps.length>1?`<button class="btn btn-red btn-sm" onclick="rmExp(${i})">✕</button>`:''}
+      </div>
+    </div>
+    <div class="fg">
+      <div class="f"><label>Job Title *</label><input value="${ev(x.role)}" placeholder="Senior Developer" oninput="APP.d.exp[${i}].role=this.value;renderResume()"></div>
+      <div class="f"><label>Company *</label><input value="${ev(x.company)}" placeholder="Acme Corp" oninput="APP.d.exp[${i}].company=this.value;renderResume()"></div>
+      <div class="f"><label>Start Date</label><input value="${ev(x.start)}" placeholder="Jan 2022" oninput="APP.d.exp[${i}].start=this.value;renderResume()"></div>
+      <div class="f"><label>End Date</label><input value="${x.current?'Present':ev(x.end)}" placeholder="Dec 2024" oninput="APP.d.exp[${i}].end=this.value;renderResume()" ${x.current?'disabled':''}></div>
+    </div>
+    <label class="chk"><input type="checkbox" ${x.current?'checked':''} onchange="APP.d.exp[${i}].current=this.checked;renderStep();renderResume()"><span>Currently working here</span></label>
+    <div class="f"><label>Achievements & Responsibilities</label>
+      <textarea rows="4" placeholder="• Led development of core payment module serving 100K+ daily users&#10;• Reduced API response time by 40% via Redis caching strategies&#10;• Mentored 3 junior devs, improving sprint velocity by 25%" oninput="APP.d.exp[${i}].bullets=this.value;renderResume();renderATS()">${ev(x.bullets)}</textarea>
+    </div>
+  </div>`).join('')}
+  <button class="btn btn-ghost" onclick="addExp()">+ Add Position</button>`;
+}
+
+function stepEducation(){
+  return `
+  <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px">Education</div>
+  <div style="font-size:11.5px;color:var(--tm);margin-bottom:14px">Include your highest and most recent degrees. New grads: put this before Experience.</div>
+  ${APP.d.edu.map((e,i)=>`
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-lbl">Degree ${i+1}</span>
+      ${APP.d.edu.length>1?`<button class="btn btn-red btn-sm" onclick="rmEdu(${i})">✕ Remove</button>`:''}
+    </div>
+    <div class="fg">
+      <div class="f"><label>Institution *</label><input value="${ev(e.school)}" placeholder="University of Dubai" oninput="APP.d.edu[${i}].school=this.value;renderResume();renderATS()"></div>
+      <div class="f"><label>Degree Type</label><input value="${ev(e.degree)}" placeholder="Bachelor of Science" oninput="APP.d.edu[${i}].degree=this.value;renderResume()"></div>
+      <div class="f"><label>Field of Study</label><input value="${ev(e.field)}" placeholder="Computer Science" oninput="APP.d.edu[${i}].field=this.value;renderResume()"></div>
+      <div class="f"><label>GPA (optional)</label><input value="${ev(e.gpa)}" placeholder="3.8 / 4.0" oninput="APP.d.edu[${i}].gpa=this.value;renderResume()"></div>
+      <div class="f"><label>Start Year</label><input value="${ev(e.start)}" placeholder="2019" oninput="APP.d.edu[${i}].start=this.value;renderResume()"></div>
+      <div class="f"><label>End Year</label><input value="${ev(e.end)}" placeholder="2023" oninput="APP.d.edu[${i}].end=this.value;renderResume()"></div>
+    </div>
+  </div>`).join('')}
+  <button class="btn btn-ghost" onclick="addEdu()">+ Add Degree</button>`;
+}
+
+function stepSkills(){
+  const d=APP.d;
+  return `
+  <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px">Skills & More</div>
+  <div style="font-size:11.5px;color:var(--tm);margin-bottom:14px">Keywords are everything for ATS. Mirror exact terms from job descriptions.</div>
+  <div class="tip"><span>⚡</span><div>Use <strong>exact names</strong>: "Laravel 10", "Vue 3 Composition API", "Docker", "GitHub Actions" — not just "backend" or "cloud".</div></div>
+  <div class="f fg1"><label>Technical Skills (comma-separated) *</label>
+    <textarea rows="3" placeholder="PHP, Laravel, Vue.js, Node.js, JavaScript, TypeScript, MySQL, Redis, Docker, AWS, Elasticsearch, Git, REST APIs, GraphQL…" oninput="APP.d.skills=this.value;renderResume();renderATS()">${ev(d.skills)}</textarea>
+  </div>
+  <div class="f"><label>Languages</label>
+    <input value="${ev(d.langs)}" placeholder="English (Fluent), Arabic (Native), Urdu (Native)" oninput="APP.d.langs=this.value;renderResume()">
+  </div>
+  <div class="f fg1"><label>Certifications & Awards (one per line)</label>
+    <textarea rows="3" placeholder="AWS Certified Solutions Architect – Associate (2024)&#10;Google Professional Cloud Developer (2023)" oninput="APP.d.certs=this.value;renderResume();renderATS()">${ev(d.certs)}</textarea>
+  </div>
+  <div class="sec-div">Projects <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--tm)"><input type="checkbox" ${d.showProj?'checked':''} onchange="APP.d.showProj=this.checked;renderStep();renderResume()" style="accent-color:var(--gold)"> Show on resume</label></div>
+  ${d.showProj?d.projects.map((proj,i)=>`
+  <div class="card">
+    <div class="card-hdr"><span class="card-lbl">Project ${i+1}</span>${d.projects.length>1?`<button class="btn btn-red btn-sm" onclick="rmProj(${i})">✕</button>`:''}</div>
+    <div class="fg">
+      <div class="f"><label>Name</label><input value="${ev(proj.name)}" placeholder="E-Commerce Platform" oninput="APP.d.projects[${i}].name=this.value;renderResume()"></div>
+      <div class="f"><label>GitHub / URL</label><input value="${ev(proj.url)}" placeholder="github.com/me/project" oninput="APP.d.projects[${i}].url=this.value;renderResume()"></div>
+    </div>
+    <div class="f"><label>Tech Stack</label><input value="${ev(proj.tech)}" placeholder="Laravel, Vue.js, MySQL, Redis" oninput="APP.d.projects[${i}].tech=this.value;renderResume()"></div>
+    <div class="f"><label>Description</label><textarea rows="2" oninput="APP.d.projects[${i}].desc=this.value;renderResume()">${ev(proj.desc)}</textarea></div>
+  </div>`).join('')+`<button class="btn btn-ghost btn-sm" onclick="addProj()">+ Add Project</button>`:''}`;
+}
+
+function stepExport(){
+  const name=(APP.d.p.name||'Resume').replace(/\s+/g,'_');
+  return `
+  <div style="font-family:var(--font-serif);font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px">Download Resume</div>
+  <div style="font-size:11.5px;color:var(--tm);margin-bottom:16px">Your recruiter-optimized CV is ready. Pick your format below.</div>
+  <div class="dl-card"><div class="dl-ico">📄</div><div class="dl-inf"><h3>PDF Format</h3><p>Best for direct applications & email. Pixel-perfect formatting preserved.</p></div><button class="btn btn-gold" onclick="dlPDF()">⬇ Download PDF</button></div>
+  <div class="dl-card"><div class="dl-ico">📝</div><div class="dl-inf"><h3>Word Document (.doc)</h3><p>Required by many ATS portals. Fully editable in Microsoft Word.</p></div><button class="btn btn-ghost" onclick="dlWord()">⬇ Download Word</button></div>
+  <div style="margin-top:12px;margin-bottom:6px;font-size:10.5px;font-weight:700;color:var(--td);text-transform:uppercase;letter-spacing:.07em">🚀 Before You Apply</div>
+  <div class="check-list">
+    ${[['Name file correctly',`${name}_Resume.pdf`],['Tailor for each role','Mirror job description keywords'],['Keep to 1–2 pages','Trim old or irrelevant roles'],['Check for typos','Read backwards to catch errors'],['Match LinkedIn','Same title & email on both'],['ATS score 80+','Clean layout, no tables in headers']].map(([t,s])=>`<div class="ck-item"><span class="ok">✓</span><div><h4>${t}</h4><p>${s}</p></div></div>`).join('')}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════
+   TEMPLATE RENDERERS — shared helpers
+══════════════════════════════════════════════ */
+function getTemplateData(){
+  const d=APP.d;
+  return {
+    p:d.p,
+    sk:(d.skills||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean),
+    ce:(d.certs||'').split('\n').map(s=>s.trim()).filter(Boolean),
+    ln:(d.langs||'').split(/[,;،]/).map(s=>s.trim()).filter(Boolean),
+    vE:d.exp.filter(e=>e.role||e.company),
+    vEd:d.edu.filter(e=>e.school||e.degree),
+    vP:d.showProj?d.projects.filter(p=>p.name):[],
+    sum:d.summary
+  };
+}
+
+function expHTML(x,cls){
+  const {role:R,company:C,bullets:B}=x;
+  const ds=dateStr(x);
+  return `<div class="${cls}-exp"><div class="${cls}-etop"><div><div class="${cls}-role">${esc(R)}</div><div class="${cls}-comp">${esc(C)}</div></div><div class="${cls}-dates">${esc(ds)}</div></div>${B?`<ul class="${cls}-ul">${bl(B)}</ul>`:''}</div>`;
+}
+
+/* ── T1: Classic Pro ── */
+function tmplClassic(ac){
+  const {p,sk,ce,ln,vE,vEd,vP,sum}=getTemplateData();
+  return `<div class="T1"><div class="T1-hdr" style="background:${ac}">
+    <div class="T1-name">${esc(p.name)||'<span style="opacity:.3">Your Name</span>'}</div>
+    ${p.title?`<div class="T1-title">${esc(p.title)}</div>`:''}
+    <div class="T1-cinfo">${[p.email&&`<span>✉ ${esc(p.email)}</span>`,p.phone&&`<span>☎ ${esc(p.phone)}</span>`,p.location&&`<span>⊙ ${esc(p.location)}</span>`,p.linkedin&&`<span>in ${esc(p.linkedin)}</span>`,p.github&&`<span>⌥ ${esc(p.github)}</span>`].filter(Boolean).join('')}</div></div>
+    <div class="T1-body">
+      ${sum?`<div class="T1-sec"><div class="T1-sh" style="color:${ac}">Professional Summary</div><div class="T1-sum">${esc(sum)}</div></div>`:''}
+      ${vE.length?`<div class="T1-sec"><div class="T1-sh" style="color:${ac}">Professional Experience</div>${vE.map(x=>expHTML(x,'T1')).join('')}</div>`:''}
+      ${vEd.length?`<div class="T1-sec"><div class="T1-sh" style="color:${ac}">Education</div>${vEd.map(x=>`<div class="T1-edu"><div class="T1-etop2"><div><div class="T1-deg">${esc(x.degree)}${x.field?' in '+esc(x.field):''}</div><div class="T1-sch" style="color:${ac}">${esc(x.school)}</div>${x.gpa?`<div style="font-size:8.5pt;color:#666">GPA: ${esc(x.gpa)}</div>`:''}</div><div style="font-size:8.5pt;color:#666;white-space:nowrap">${[x.start,x.end].filter(Boolean).join(' – ')}</div></div></div>`).join('')}</div>`:''}
+      <div class="T1-2col">
+        ${sk.length?`<div class="T1-sec"><div class="T1-sh" style="color:${ac}">Technical Skills</div><div class="T1-tags">${sk.map(s=>`<span class="T1-tag">${esc(s)}</span>`).join('')}</div></div>`:''}
+        ${ce.length?`<div class="T1-sec"><div class="T1-sh" style="color:${ac}">Certifications</div>${ce.map(c=>`<div class="T1-cert">${esc(c)}</div>`).join('')}</div>`:''}
+      </div>
+      ${ln.length?`<div class="T1-sec"><div class="T1-sh" style="color:${ac}">Languages</div><div class="T1-lang">${ln.map(l=>`<span>${esc(l)}</span>`).join('')}</div></div>`:''}
+      ${vP.length?`<div class="T1-sec"><div class="T1-sh" style="color:${ac}">Projects</div>${vP.map(x=>`<div class="T1-proj"><div class="T1-pnm">${esc(x.name)}${x.tech?` <span style="font-size:8.5pt;font-weight:400;color:#555">— ${esc(x.tech)}</span>`:''}</div>${x.url?`<div class="T1-purl" style="color:${ac}">${esc(x.url)}</div>`:''}${x.desc?`<div class="T1-pdsc">${esc(x.desc)}</div>`:''}</div>`).join('')}</div>`:''}
+    </div></div>`;
+}
+
+/* ── T2: Sidebar Pro ── */
+function tmplSidebar(ac){
+  const {p,sk,ce,ln,vE,vEd,sum}=getTemplateData();
+  return `<div class="T2"><div class="T2-sb" style="background:${ac}">
+    <div class="T2-nm">${esc(p.name)||'<span style="opacity:.3">Name</span>'}</div>
+    <div class="T2-ttl">${esc(p.title)||'&nbsp;'}</div>
+    <div class="T2-ssec"><div class="T2-ssh">Contact</div>
+      ${[p.email&&`<div class="T2-ci"><span>✉</span><span>${esc(p.email)}</span></div>`,p.phone&&`<div class="T2-ci"><span>☎</span><span>${esc(p.phone)}</span></div>`,p.location&&`<div class="T2-ci"><span>⊙</span><span>${esc(p.location)}</span></div>`,p.linkedin&&`<div class="T2-ci"><span>in</span><span>${esc(p.linkedin)}</span></div>`,p.github&&`<div class="T2-ci"><span>⌥</span><span>${esc(p.github)}</span></div>`].filter(Boolean).join('')}
+    </div>
+    ${sk.length?`<div class="T2-ssec"><div class="T2-ssh">Skills</div>${sk.map(s=>`<div class="T2-sk">${esc(s)}</div>`).join('')}</div>`:''}
+    ${ln.length?`<div class="T2-ssec"><div class="T2-ssh">Languages</div>${ln.map(l=>`<div class="T2-ln"><span>${esc(l)}</span></div>`).join('')}</div>`:''}
+    ${ce.length?`<div class="T2-ssec"><div class="T2-ssh">Certifications</div>${ce.map(c=>`<div class="T2-ct">${esc(c)}</div>`).join('')}</div>`:''}
+  </div>
+  <div class="T2-main">
+    ${sum?`<div class="T2-sec"><div class="T2-sh" style="color:${ac}">Summary</div><div class="T2-sum">${esc(sum)}</div></div>`:''}
+    ${vE.length?`<div class="T2-sec"><div class="T2-sh" style="color:${ac}">Experience</div>${vE.map(x=>`<div class="T2-exp"><div class="T2-etop"><div><div class="T2-role">${esc(x.role)}</div><div class="T2-comp" style="color:${ac}">${esc(x.company)}</div></div><div class="T2-dates">${esc(dateStr(x))}</div></div>${x.bullets?`<ul class="T2-ul">${bl(x.bullets)}</ul>`:''}</div>`).join('')}</div>`:''}
+    ${vEd.length?`<div class="T2-sec"><div class="T2-sh" style="color:${ac}">Education</div>${vEd.map(x=>`<div class="T2-edu"><div class="T2-deg">${esc(x.degree)}${x.field?' in '+esc(x.field):''}</div><div class="T2-sch" style="color:${ac}">${esc(x.school)}</div><div style="font-size:8.5pt;color:#777">${[x.start,x.end].filter(Boolean).join(' – ')}${x.gpa?' · GPA: '+esc(x.gpa):''}</div></div>`).join('')}</div>`:''}
+  </div></div>`;
+}
+
+/* ── T3: Minimal ── */
+function tmplMinimal(ac){
+  const {p,sk,ce,ln,vE,vEd,sum}=getTemplateData();
+  return `<div class="T3">
+    <div class="T3-nm">${esc(p.name)||'<span style="opacity:.25">Your Name</span>'}</div>
+    ${p.title?`<div class="T3-ttl">${esc(p.title)}</div>`:''}
+    <div class="T3-cinfo">${[p.email,p.phone,p.location,p.linkedin].filter(Boolean).map(v=>`<span>${esc(v)}</span>`).join('')}</div>
+    ${sum?`<div class="T3-sh">Summary</div><div class="T3-rule"></div><div class="T3-sum" style="margin-bottom:14px">${esc(sum)}</div>`:''}
+    ${vE.length?`<div class="T3-sh">Experience</div><div class="T3-rule"></div>${vE.map(x=>`<div class="T3-exp"><div class="T3-etop"><div><div class="T3-role">${esc(x.role)}</div><div class="T3-comp">${esc(x.company)}</div></div><div class="T3-dates">${esc(dateStr(x))}</div></div>${x.bullets?`<ul class="T3-ul">${bl(x.bullets)}</ul>`:''}</div>`).join('')}`:''}
+    ${vEd.length?`<div class="T3-sh" style="margin-top:14px">Education</div><div class="T3-rule"></div>${vEd.map(x=>`<div class="T3-edu"><div><div class="T3-deg">${esc(x.degree)}${x.field?' in '+esc(x.field):''}</div><div class="T3-sch">${esc(x.school)}</div></div><div style="font-size:8.5pt;color:#888">${[x.start,x.end].filter(Boolean).join(' – ')}</div></div>`).join('')}`:''}
+    ${sk.length?`<div class="T3-sh" style="margin-top:14px">Skills</div><div class="T3-rule"></div><div style="margin-bottom:12px">${sk.map(s=>`<span class="T3-tag">${esc(s)}</span>`).join('')}</div>`:''}
+    ${ce.length?`<div class="T3-sh">Certifications</div><div class="T3-rule"></div><div style="margin-bottom:12px">${ce.map(c=>`<div class="T3-cert">${esc(c)}</div>`).join('')}</div>`:''}
+    ${ln.length?`<div class="T3-sh">Languages</div><div class="T3-rule"></div><div class="T3-lang">${ln.map(l=>`<span>${esc(l)}</span>`).join('')}</div>`:''}
+  </div>`;
+}
+
+/* ── T4: Tech Pro ── */
+function tmplTech(ac){
+  const {p,sk,ce,ln,vE,vEd,vP,sum}=getTemplateData();
+  const nm=esc(p.name)||'<span style="opacity:.3">Your Name</span>';
+  const firstWord=p.name?esc(p.name.split(' ')[0]):'';
+  const restName=p.name&&p.name.indexOf(' ')>-1?esc(p.name.substring(p.name.indexOf(' ')+1)):'';
+  return `<div class="T4"><div class="T4-hdr">
+    <div class="T4-nm">${p.name?`<span style="color:#0FD4B5">${firstWord}</span> ${restName}`:nm}</div>
+    ${p.title?`<div class="T4-ttl">${esc(p.title)}</div>`:''}
+    <div class="T4-cinfo">${[p.email&&`<span>✉ ${esc(p.email)}</span>`,p.phone&&`<span>☎ ${esc(p.phone)}</span>`,p.location&&`<span>⊙ ${esc(p.location)}</span>`,p.github&&`<a>${esc(p.github)}</a>`,p.linkedin&&`<span>in ${esc(p.linkedin)}</span>`].filter(Boolean).join('')}</div>
+  </div><div class="T4-body">
+    ${sum?`<div class="T4-sec"><div class="T4-sh">Summary</div><div class="T4-sum">${esc(sum)}</div></div>`:''}
+    ${vE.length?`<div class="T4-sec"><div class="T4-sh">Experience</div>${vE.map(x=>`<div class="T4-exp"><div class="T4-etop"><div><div class="T4-role">${esc(x.role)}</div><div class="T4-comp">${esc(x.company)}</div></div><div class="T4-dates">${esc(dateStr(x))}</div></div>${x.bullets?`<ul class="T4-ul">${bl(x.bullets)}</ul>`:''}</div>`).join('')}</div>`:''}
+    ${vEd.length?`<div class="T4-sec"><div class="T4-sh">Education</div>${vEd.map(x=>`<div class="T4-edu"><div class="T4-deg">${esc(x.degree)}${x.field?' in '+esc(x.field):''}</div><div class="T4-sch">${esc(x.school)}</div><div style="font-size:8.5pt;color:#777">${[x.start,x.end].filter(Boolean).join(' – ')}${x.gpa?' · GPA: '+esc(x.gpa):''}</div></div>`).join('')}</div>`:''}
+    <div class="T4-2col">
+      ${sk.length?`<div class="T4-sec"><div class="T4-sh">Tech Stack</div><div class="T4-tags">${sk.map(s=>`<span class="T4-tag">${esc(s)}</span>`).join('')}</div></div>`:''}
+      ${ce.length?`<div class="T4-sec"><div class="T4-sh">Certifications</div>${ce.map(c=>`<div class="T4-cert">${esc(c)}</div>`).join('')}</div>`:''}
+    </div>
+    ${ln.length?`<div class="T4-sec"><div class="T4-sh">Languages</div><div class="T4-lang">${ln.map(l=>`<span>${esc(l)}</span>`).join('')}</div></div>`:''}
+    ${vP.length?`<div class="T4-sec"><div class="T4-sh">Projects</div>${vP.map(x=>`<div class="T4-proj"><span class="T4-pnm">${esc(x.name)}</span>${x.tech?`<span class="T4-ptech">${esc(x.tech)}</span>`:''}<br>${x.url?`<div class="T4-purl">${esc(x.url)}</div>`:''}${x.desc?`<div class="T4-pdsc">${esc(x.desc)}</div>`:''}</div>`).join('')}</div>`:''}
+  </div></div>`;
+}
+
+/* ── T5: Executive Elite ── */
+function tmplExecutive(ac){
+  const {p,sk,ce,ln,vE,vEd,sum}=getTemplateData();
+  return `<div class="T5"><div class="T5-top">
+    <div class="T5-nm">${esc(p.name)||'<span style="opacity:.3">Your Name</span>'}</div>
+    ${p.title?`<div class="T5-ttl">${esc(p.title)}</div>`:''}
+    <div class="T5-cinfo">${[p.email,p.phone,p.location,p.linkedin].filter(Boolean).map(v=>`<span>${esc(v)}</span>`).join('')}</div>
+  </div>
+  ${sum?`<div class="T5-sec"><div class="T5-sh">Profile</div><div class="T5-sum">${esc(sum)}</div></div>`:''}
+  ${vE.length?`<div class="T5-sec"><div class="T5-sh">Career History</div>${vE.map(x=>`<div class="T5-exp"><div class="T5-etop"><div><div class="T5-role">${esc(x.role)}</div><div class="T5-comp">${esc(x.company)}</div></div><div class="T5-dates">${esc(dateStr(x))}</div></div>${x.bullets?`<ul class="T5-ul">${bl(x.bullets)}</ul>`:''}</div>`).join('')}</div>`:''}
+  ${vEd.length?`<div class="T5-sec"><div class="T5-sh">Education</div>${vEd.map(x=>`<div class="T5-edu"><div class="T5-deg">${esc(x.degree)}${x.field?' in '+esc(x.field):''}</div><div class="T5-sch">${esc(x.school)}</div><div style="font-family:Arial,sans-serif;font-size:8.5pt;color:#777">${[x.start,x.end].filter(Boolean).join(' – ')}${x.gpa?' · GPA: '+esc(x.gpa):''}</div></div>`).join('')}</div>`:''}
+  <div class="T5-2col">
+    ${sk.length?`<div class="T5-sec"><div class="T5-sh">Expertise</div><div class="T5-skills">${sk.map(s=>`<span class="T5-tag">${esc(s)}</span>`).join(' ')}</div></div>`:''}
+    ${ce.length?`<div class="T5-sec"><div class="T5-sh">Credentials</div>${ce.map(c=>`<div class="T5-cert">${esc(c)}</div>`).join('')}</div>`:''}
+  </div>
+  ${ln.length?`<div class="T5-sec"><div class="T5-sh">Languages</div><div class="T5-lang">${ln.map(l=>`<span>${esc(l)}</span>`).join('')}</div></div>`:''}
+  </div>`;
+}
+
+/* ── T6: Modern Stripe ── */
+function tmplStripe(ac){
+  const {p,sk,ce,ln,vE,vEd,vP,sum}=getTemplateData();
+  return `<div class="T6"><div class="T6-hdr" style="border-left-color:${ac}">
+    <div class="T6-nm" style="color:${ac}">${esc(p.name)||'<span style="opacity:.3">Your Name</span>'}</div>
+    ${p.title?`<div class="T6-ttl">${esc(p.title)}</div>`:''}
+    <div class="T6-cinfo">${[p.email&&`<span>✉ ${esc(p.email)}</span>`,p.phone&&`<span>☎ ${esc(p.phone)}</span>`,p.location&&`<span>⊙ ${esc(p.location)}</span>`,p.linkedin&&`<span>in ${esc(p.linkedin)}</span>`,p.github&&`<span>⌥ ${esc(p.github)}</span>`].filter(Boolean).join('')}</div>
+  </div><div class="T6-body">
+    ${sum?`<div class="T6-sec"><div class="T6-sh" style="background:${ac}">Summary</div><div class="T6-sum">${esc(sum)}</div></div>`:''}
+    ${vE.length?`<div class="T6-sec"><div class="T6-sh" style="background:${ac}">Experience</div>${vE.map(x=>`<div class="T6-exp" style="border-left-color:${ac}"><div class="T6-etop"><div><div class="T6-role" style="color:${ac}">${esc(x.role)}</div><div class="T6-comp">${esc(x.company)}</div></div><div class="T6-dates" style="background:${ac}">${esc(dateStr(x))}</div></div>${x.bullets?`<ul class="T6-ul">${bl(x.bullets)}</ul>`:''}</div>`).join('')}</div>`:''}
+    ${vEd.length?`<div class="T6-sec"><div class="T6-sh" style="background:${ac}">Education</div>${vEd.map(x=>`<div class="T6-edu"><div><div class="T6-deg" style="color:${ac}">${esc(x.degree)}${x.field?' in '+esc(x.field):''}</div><div class="T6-sch">${esc(x.school)}</div></div><div class="T6-edu-dates">${[x.start,x.end].filter(Boolean).join(' – ')}</div></div>`).join('')}</div>`:''}
+    <div class="T6-2col">
+      ${sk.length?`<div class="T6-sec"><div class="T6-sh" style="background:${ac}">Skills</div><div class="T6-tags">${sk.map(s=>`<span class="T6-tag" style="border-color:${ac}22;color:${ac};background:${ac}0D">${esc(s)}</span>`).join('')}</div></div>`:''}
+      ${ce.length?`<div class="T6-sec"><div class="T6-sh" style="background:${ac}">Certifications</div>${ce.map(c=>`<div class="T6-cert">${esc(c)}</div>`).join('')}</div>`:''}
+    </div>
+    ${ln.length?`<div class="T6-sec"><div class="T6-sh" style="background:${ac}">Languages</div><div class="T6-lang">${ln.map(l=>`<span>${esc(l)}</span>`).join('')}</div></div>`:''}
+    ${vP.length?`<div class="T6-sec"><div class="T6-sh" style="background:${ac}">Projects</div>${vP.map(x=>`<div class="T6-exp" style="border-left-color:${ac}"><div class="T6-etop"><div><div class="T6-role" style="color:${ac}">${esc(x.name)}</div><div class="T6-comp">${esc(x.tech)}</div></div>${x.url?`<div class="T6-dates" style="background:${ac};font-size:7.5pt">${esc(x.url.replace(/^https?:\/\//,''))}</div>`:''}</div>${x.desc?`<div style="font-size:9pt;color:#333;margin-top:3px">${esc(x.desc)}</div>`:''}</div>`).join('')}</div>`:''}
+  </div></div>`;
+}
+
+/* ══════════════════════════════════════════════
+   RENDER RESUME
+══════════════════════════════════════════════ */
+function renderResume(){
+  const wrap=document.getElementById('resume-wrap');
+  if(!wrap) return;
+  const fn={classic:tmplClassic,sidebar:tmplSidebar,minimal:tmplMinimal,tech:tmplTech,executive:tmplExecutive,stripe:tmplStripe};
+  wrap.innerHTML=(fn[APP.tpl]||tmplClassic)(APP.accent);
+}
+
+/* ══════════════════════════════════════════════
+   RENDER ALL
+══════════════════════════════════════════════ */
+function renderStep(){
+  const fns=[stepPersonal,stepSummary,stepExperience,stepEducation,stepSkills,stepExport];
+  const el=document.getElementById('bld-scroll');
+  if(el){ el.innerHTML=fns[APP.step](); el.scrollTop=0; }
+}
+
+function renderAll(){
+  const nav=document.getElementById('sb-nav');
+  if(nav) nav.innerHTML=STEPS.map((s,i)=>`
+    <div class="sb-item ${i===APP.step?'on':i<APP.step?'done':''}" onclick="goStep(${i})">
+      <div class="sb-dot">${i<APP.step?'✓':i+1}</div>
+      <span>${s.label}</span>
+    </div>`).join('');
+  document.getElementById('bld-title').textContent=STEPS[APP.step].label;
+  document.getElementById('bld-desc').textContent=STEPS[APP.step].desc;
+  document.getElementById('prog-fill').style.width=((APP.step+1)/STEPS.length*100)+'%';
+  document.getElementById('bld-ctr').textContent=`Step ${APP.step+1} of ${STEPS.length}`;
+  const bb=document.getElementById('btn-back'), bn=document.getElementById('btn-next');
+  if(bb) bb.style.visibility=APP.step===0?'hidden':'visible';
+  if(bn){
+    if(APP.step===STEPS.length-1){ bn.textContent='⬇ Download PDF'; bn.onclick=dlPDF; }
+    else{ bn.textContent='Continue →'; bn.onclick=nextStep; }
+  }
+  const pills=document.getElementById('tpl-pills');
+  if(pills) pills.innerHTML=TEMPLATES.map(t=>`<button class="tpl-pill ${APP.tpl===t.id?'on':''}" onclick="setTpl('${t.id}')">${t.name}</button>`).join('');
+  renderStep(); renderATS();
+}
+
+/* ══════════════════════════════════════════════
+   TEMPLATE & COLOR
+══════════════════════════════════════════════ */
+function setTpl(id){
+  APP.tpl=id;
+  APP.accent=TEMPLATES.find(t=>t.id===id)?.color||'#0F2952';
+  renderAll(); renderResume(); closeModal('m-tpl');
+}
+
+function applyColor(c){
+  APP.accent=c;
+  renderResume();
+  document.querySelectorAll('.c-sw').forEach(sw=>sw.classList.toggle('on',sw.dataset.c===c));
+  const cc=document.getElementById('col-custom'); if(cc) cc.value=c;
+}
+
+function renderTplModal(){
+  const g=document.getElementById('tpl-grid'); if(!g) return;
+  g.innerHTML=TEMPLATES.map(t=>`
+    <div class="tpl-card ${APP.tpl===t.id?'on':''}" onclick="setTpl('${t.id}')">
+      <div class="tpl-thumb">${tplThumb(t)}</div>
+      <div class="tpl-nm">${t.name}</div>
+      <div class="tpl-tag">${t.tag}</div>
+    </div>`).join('');
+}
+
+function tplThumb(t){
+  const c=t.color;
+  if(t.id==='sidebar') return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="140" fill="white"/><rect width="30" height="140" fill="${c}"/><rect x="5" y="18" width="20" height="3" fill="rgba(255,255,255,.7)" rx="1"/><rect x="5" y="26" width="14" height="2" fill="rgba(255,255,255,.4)" rx="1"/><rect x="5" y="38" width="20" height="1.5" fill="rgba(255,255,255,.4)" rx="1"/><rect x="5" y="43" width="16" height="1.5" fill="rgba(255,255,255,.3)" rx="1"/><rect x="5" y="48" width="18" height="1.5" fill="rgba(255,255,255,.3)" rx="1"/><rect x="36" y="12" width="56" height="4" fill="${c}" rx="1"/><rect x="36" y="20" width="44" height="1.5" fill="#EEE" rx="1"/><rect x="36" y="25" width="38" height="1.5" fill="#EEE" rx="1"/><rect x="36" y="34" width="32" height="2" fill="${c}" rx="1"/><rect x="36" y="40" width="50" height="1.5" fill="#DDD" rx="1"/><rect x="36" y="44" width="46" height="1.5" fill="#DDD" rx="1"/></svg>`;
+  if(t.id==='minimal') return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="140" fill="white"/><rect x="8" y="11" width="55" height="5" fill="#111" rx="1"/><rect x="8" y="19" width="38" height="2" fill="#888" rx="1"/><rect x="8" y="27" width="84" height="1" fill="#CCC"/><rect x="8" y="33" width="22" height="2" fill="#111" rx="1"/><rect x="8" y="38" width="80" height="1.5" fill="#EEE" rx="1"/><rect x="8" y="42" width="70" height="1.5" fill="#EEE" rx="1"/><rect x="8" y="52" width="22" height="2" fill="#111" rx="1"/><rect x="8" y="57" width="80" height="1" fill="#DDD"/><rect x="8" y="61" width="55" height="1.5" fill="#EEE" rx="1"/><rect x="8" y="65" width="48" height="1.5" fill="#EEE" rx="1"/></svg>`;
+  if(t.id==='tech') return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="140" fill="white"/><rect width="100" height="28" fill="#0D1117"/><rect x="0" y="28" width="100" height="2" fill="#0FD4B5"/><rect x="8" y="8" width="45" height="5" fill="white" rx="1"/><rect x="8" y="17" width="32" height="2" fill="rgba(255,255,255,.4)" rx="1"/><rect x="8" y="34" width="18" height="2" fill="#0D1117" rx="1"/><rect x="8" y="40" width="80" height="1.5" fill="#EEE" rx="1"/><rect x="8" y="44" width="70" height="1.5" fill="#EEE" rx="1"/><rect x="8" y="53" width="15" height="2" fill="#0D1117" rx="1"/><rect x="8" y="58" width="50" height="1.5" fill="#EEE" rx="1"/><rect x="62" y="58" width="16" height="8" fill="#EBF8FF" rx="2" stroke="#BEE3F8" stroke-width="0.5"/><rect x="8" y="70" width="26" height="5" fill="#EBF8FF" rx="2" stroke="#BEE3F8" stroke-width="0.5"/><rect x="36" y="70" width="22" height="5" fill="#EBF8FF" rx="2" stroke="#BEE3F8" stroke-width="0.5"/></svg>`;
+  if(t.id==='executive') return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="140" fill="#FFFEF9"/><rect x="12" y="12" width="76" height="6" fill="#111" rx="1"/><rect x="20" y="21" width="60" height="2" fill="#8B6914" rx="1"/><rect x="8" y="26" width="84" height="1" fill="#D4A84E" opacity=".5"/><rect x="8" y="30" width="84" height="1" fill="#111"/><rect x="20" y="36" width="60" height="2" fill="#8B6914" rx="1"/><rect x="10" y="34" width="80" height="1" fill="#D4A84E" opacity=".3"/><rect x="10" y="40" width="80" height="1.5" fill="#DDD" rx="1"/><rect x="10" y="44" width="72" height="1.5" fill="#DDD" rx="1"/><rect x="10" y="48" width="76" height="1.5" fill="#DDD" rx="1"/></svg>`;
+  if(t.id==='stripe') return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="140" fill="white"/><rect x="0" y="0" width="5" height="140" fill="${c}"/><rect x="10" y="12" width="55" height="5" fill="${c}" rx="1"/><rect x="10" y="20" width="38" height="2" fill="#666" rx="1"/><rect x="10" y="27" width="70" height="1.5" fill="#EEE" rx="1"/><rect x="10" y="34" width="24" height="4" fill="${c}" rx="2"/><rect x="10" y="42" width="72" height="4" fill="#F1F5F9" rx="2" stroke="#E2E8F0" stroke-width="0.5"/><rect x="10" y="50" width="72" height="4" fill="#F1F5F9" rx="2" stroke="#E2E8F0" stroke-width="0.5"/><rect x="10" y="58" width="24" height="4" fill="${c}" rx="2"/><rect x="10" y="66" width="60" height="1.5" fill="#EEE" rx="1"/></svg>`;
+  return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="140" fill="white"/><rect width="100" height="30" fill="${c}"/><rect x="10" y="9" width="46" height="5" fill="rgba(255,255,255,.85)" rx="1"/><rect x="10" y="18" width="32" height="2.5" fill="rgba(255,255,255,.5)" rx="1"/><rect x="10" y="24" width="70" height="1.5" fill="rgba(255,255,255,.3)" rx="1"/><rect x="10" y="36" width="22" height="2" fill="${c}" rx="1"/><rect x="10" y="42" width="78" height="1.5" fill="#EEE" rx="1"/><rect x="10" y="46" width="70" height="1.5" fill="#EEE" rx="1"/><rect x="10" y="54" width="22" height="2" fill="${c}" rx="1"/><rect x="10" y="60" width="58" height="1.5" fill="#EEE" rx="1"/></svg>`;
+}
+
+function renderColModal(){
+  const g=document.getElementById('col-grid'); if(!g) return;
+  g.innerHTML=PALETTE.map(c=>`<div class="c-sw ${APP.accent===c?'on':''}" style="background:${c}" data-c="${c}" onclick="applyColor('${c}')"></div>`).join('');
+  const cc=document.getElementById('col-custom'); if(cc) cc.value=APP.accent;
+}
+
+/* ══════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════ */
+function openModal(id){
+  document.getElementById(id)?.classList.add('open');
+  if(id==='m-tpl') renderTplModal();
+  if(id==='m-col') renderColModal();
+  if(id==='m-api'){ const inp=document.getElementById('api-key-input'); if(inp) inp.value=APP.apiKey||''; }
+}
+function closeModal(id){ document.getElementById(id)?.classList.remove('open'); }
+function closeIf(ev,id){ if(ev.target.id===id) closeModal(id); }
+
+/* ══════════════════════════════════════════════
+   API KEY
+══════════════════════════════════════════════ */
+function saveApiKey(){
+  const inp=document.getElementById('api-key-input');
+  const key=(inp?.value||'').trim();
+  const errEl=document.getElementById('api-save-err');
+  if(!key||!key.startsWith('sk-ant')){ if(errEl) errEl.textContent='Must start with "sk-ant". Check and try again.'; return; }
+  APP.apiKey=key;
+  try{ localStorage.setItem('rf_key',key); }catch(e){}
+  updateApiBtn(); closeModal('m-api');
+}
+function clearApiKey(){
+  APP.apiKey=''; try{ localStorage.removeItem('rf_key'); }catch(e){}
+  updateApiBtn();
+  const inp=document.getElementById('api-key-input'); if(inp) inp.value='';
+}
+function updateApiBtn(){
+  const lbl=document.getElementById('sb-ai-lbl'), btn=document.getElementById('sb-ai-btn');
+  if(!lbl||!btn) return;
+  if(APP.apiKey){ lbl.textContent='AI: Active ✓'; btn.style.color='var(--ok)'; btn.style.borderColor='rgba(69,212,131,.3)'; }
+  else{ lbl.textContent='Set API Key'; btn.style.color=''; btn.style.borderColor=''; }
+}
+
+/* ══════════════════════════════════════════════
+   AI API
+══════════════════════════════════════════════ */
+async function callAI(prompt){
+  if(!APP.apiKey){ openModal('m-api'); throw new Error('NO_KEY'); }
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+  });
+  if(!res.ok){
+    const err=await res.json().catch(()=>({}));
+    if(res.status===401){ openModal('m-api'); throw new Error('Invalid API key. Please re-enter.'); }
+    throw new Error(err?.error?.message||'HTTP '+res.status);
+  }
+  const data=await res.json();
+  if(!data.content?.[0]?.text) throw new Error('Empty response');
+  return data.content[0].text.trim();
+}
+
+/* ── AI: Generate Summary ── */
+async function aiSummary(){
+  APP.loading='sum'; renderStep();
+  const d=APP.d;
+  const expStr=d.exp.filter(e=>e.role).map(e=>`${e.role} at ${e.company}`).join(', ')||'various companies';
+  const skStr=(d.skills||'').split(',').slice(0,6).join(', ')||'software development';
+  try{
+    const r=await callAI(`Write a powerful 3-sentence professional resume summary for a ${d.p.title||'professional'}.
+Name: ${d.p.name||'the candidate'} | Experience: ${expStr} | Key skills: ${skStr}
+Requirements: ATS-optimized with exact job title keywords, results-focused with one quantified achievement, impressive to a senior recruiter. Avoid clichés: "results-driven", "dynamic", "passionate".
+Output ONLY the summary paragraph — no labels, no quotes.`);
+    APP.d.summary=r;
+  }catch(e){ if(e.message!=='NO_KEY') alert('AI Error: '+e.message); }
+  APP.loading=null; renderStep(); renderResume(); renderATS();
+}
+
+/* ── AI: Enhance Bullets ── */
+async function aiEnhance(i){
+  APP.loading=`b${i}`; renderStep();
+  const x=APP.d.exp[i];
+  try{
+    const r=await callAI(`Rewrite these job description bullets for a ${x.role||'professional'} at ${x.company||'a company'} to be highly impactful and ATS-optimized.
+Current: ${x.bullets||(x.role?`(generate 4 strong achievement bullets for a ${x.role} role)`:'')}
+Rules: Strong action verbs (Engineered, Architected, Led, Optimized, Scaled…), quantify with %, $, users, time saved, STAR format, max 5 bullets.
+Output ONLY bullet points, each starting with •, nothing else.`);
+    APP.d.exp[i].bullets=r;
+  }catch(e){ if(e.message!=='NO_KEY') alert('AI Error: '+e.message); }
+  APP.loading=null; renderStep(); renderResume(); renderATS();
+}
+
+/* ══════════════════════════════════════════════
+   CV UPLOAD & PARSE
+══════════════════════════════════════════════ */
+function dzDragOver(e){ e.preventDefault(); document.getElementById('drop-zone')?.classList.add('drag-over'); }
+function dzDragLeave(){ document.getElementById('drop-zone')?.classList.remove('drag-over'); }
+function dzDrop(e){ e.preventDefault(); dzDragLeave(); const f=e.dataTransfer?.files[0]; if(f) processCV(f); }
+function handleFileSelect(e){ const f=e.target.files?.[0]; if(f) processCV(f); }
+
+function setParseStep(n, state){
+  // state: 'active' | 'done'
+  const el=document.getElementById(`ps${n}`), icon=document.getElementById(`ps${n}-icon`);
+  if(!el||!icon) return;
+  el.className='parse-step '+(state==='done'?'done':'active');
+  icon.innerHTML=state==='done'?'✓':`<span class="spin" style="width:11px;height:11px"></span>`;
+}
+
+async function processCV(file){
+  if(!APP.apiKey){ openModal('m-api'); return; }
+  if(file.size>10*1024*1024){ alert('File too large. Max 10MB.'); return; }
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!['pdf','doc','docx'].includes(ext)){ alert('Only PDF, DOC, or DOCX files are supported.'); return; }
+
+  // Show progress UI
+  document.getElementById('upload-body').style.display='none';
+  document.getElementById('parse-progress').style.display='block';
+
+  try{
+    // Step 1: Read file
+    setParseStep(1,'active');
+    let text='';
+
+    if(ext==='pdf'){
+      setParseStep(1,'done'); setParseStep(2,'active');
+      if(typeof pdfjsLib==='undefined') throw new Error('PDF.js not loaded. Refresh and try again.');
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const ab=await file.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+      for(let i=1;i<=pdf.numPages;i++){
+        const page=await pdf.getPage(i);
+        const content=await page.getTextContent();
+        text+=content.items.map(item=>item.str).join(' ')+'\n';
+      }
+    } else {
+      setParseStep(1,'done'); setParseStep(2,'active');
+      if(typeof mammoth==='undefined') throw new Error('Mammoth.js not loaded. Refresh and try again.');
+      const ab=await file.arrayBuffer();
+      const result=await mammoth.extractRawText({arrayBuffer:ab});
+      text=result.value;
+    }
+
+    if(!text||text.trim().length<50) throw new Error('Could not extract text from this file. Try copy-pasting content instead.');
+
+    // Step 3: AI Parse
+    setParseStep(2,'done'); setParseStep(3,'active');
+    const jsonStr=await callAI(`Extract all information from this resume/CV text and return ONLY a valid JSON object. No markdown, no explanation, no code blocks — just raw JSON.
+
+Required structure:
+{
+  "name": "",
+  "title": "",
+  "email": "",
+  "phone": "",
+  "location": "",
+  "linkedin": "",
+  "github": "",
+  "website": "",
+  "summary": "",
+  "exp": [
+    {"role": "", "company": "", "start": "", "end": "", "current": false, "bullets": "bullet1\\nbullet2\\nbullet3"}
+  ],
+  "edu": [
+    {"degree": "", "field": "", "school": "", "start": "", "end": "", "gpa": ""}
+  ],
+  "skills": "skill1, skill2, skill3",
+  "langs": "English (Fluent), Arabic (Native)",
+  "certs": "cert1\\ncert2"
+}
+
+Rules:
+- bullets field: join all bullet points with \\n, prefix each with •
+- skills field: comma-separated string
+- certs field: newline-separated string
+- If a field is not found, leave it as empty string
+- current: true only if the person currently works there
+- For dates, use format like "Jan 2022" or just "2020"
+
+CV TEXT:
+${text.substring(0,8000)}`);
+
+    // Step 4: Fill form
+    setParseStep(3,'done'); setParseStep(4,'active');
+
+    let parsed;
+    try{
+      const clean=jsonStr.replace(/```json|```/g,'').trim();
+      parsed=JSON.parse(clean);
+    }catch(e){ throw new Error('AI returned invalid JSON. Try again.'); }
+
+    // Populate state
+    const p=parsed;
+    APP.d.p={
+      name:p.name||'', title:p.title||'', email:p.email||'',
+      phone:p.phone||'', location:p.location||'',
+      linkedin:p.linkedin||'', github:p.github||'', website:p.website||''
+    };
+    APP.d.summary=p.summary||'';
+    if(p.exp&&p.exp.length){
+      APP.d.exp=p.exp.map((e,i)=>({id:Date.now()+i,role:e.role||'',company:e.company||'',start:e.start||'',end:e.end||'',current:!!e.current,bullets:e.bullets||''}));
+    }
+    if(p.edu&&p.edu.length){
+      APP.d.edu=p.edu.map((e,i)=>({id:Date.now()+i,degree:e.degree||'',field:e.field||'',school:e.school||'',start:e.start||'',end:e.end||'',gpa:e.gpa||''}));
+    }
+    APP.d.skills=p.skills||'';
+    APP.d.langs=p.langs||'';
+    APP.d.certs=p.certs||'';
+
+    setParseStep(4,'done');
+    await new Promise(r=>setTimeout(r,700));
+
+    closeModal('m-upload');
+    APP.step=0;
+    renderAll(); renderResume(); renderATS();
+
+    // Reset upload modal for next use
+    setTimeout(()=>{
+      document.getElementById('upload-body').style.display='block';
+      document.getElementById('parse-progress').style.display='none';
+      document.getElementById('cv-file-input').value='';
+      for(let i=1;i<=4;i++){
+        const el=document.getElementById(`ps${i}`), icon=document.getElementById(`ps${i}-icon`);
+        if(el){ el.className='parse-step'; }
+        if(icon){ icon.textContent=i; }
+      }
+    },500);
+
+  }catch(err){
+    document.getElementById('upload-body').style.display='block';
+    document.getElementById('parse-progress').style.display='none';
+    document.getElementById('cv-file-input').value='';
+    for(let i=1;i<=4;i++){
+      const el=document.getElementById(`ps${i}`), icon=document.getElementById(`ps${i}-icon`);
+      if(el){ el.className='parse-step'; }
+      if(icon){ icon.textContent=i; }
+    }
+    if(err.message!=='NO_KEY') alert('Upload failed: '+err.message);
+  }
+}
+
+
+/* ══════════════════════════════════════════════
+   LOCAL AI — works without API key
+══════════════════════════════════════════════ */
+const ACTION_VERBS = ['Engineered','Architected','Developed','Built','Delivered','Launched','Deployed','Optimized','Reduced','Increased','Improved','Scaled','Led','Managed','Mentored','Coordinated','Designed','Implemented','Automated','Streamlined','Accelerated','Drove','Achieved','Exceeded','Generated','Spearheaded','Established','Transformed','Modernized','Integrated'];
+
+const ROLE_KEYWORDS = {
+  'software':['software development','REST APIs','agile','code review','unit testing','CI/CD','version control'],
+  'frontend':['responsive design','cross-browser compatibility','UI/UX','performance optimization','component architecture'],
+  'backend':['server-side development','database optimization','API design','microservices','scalability'],
+  'fullstack':['end-to-end development','full-stack architecture','API integration','database design'],
+  'senior':['technical leadership','architecture decisions','mentoring','code quality','best practices'],
+  'lead':['team leadership','project planning','stakeholder communication','delivery management'],
+  'manager':['team management','performance reviews','roadmap planning','cross-functional collaboration'],
+  'developer':['software development','problem-solving','agile methodology','code review'],
+  'engineer':['engineering solutions','system design','technical implementation','performance tuning'],
+  'analyst':['data analysis','requirements gathering','process improvement','reporting'],
+  'designer':['UI design','user experience','design systems','prototyping'],
+  'devops':['CI/CD pipelines','infrastructure automation','container orchestration','monitoring'],
+  'data':['data pipelines','statistical analysis','machine learning','data visualization'],
+};
+
+function calcYearsExp(){
+  const exps = APP.d.exp.filter(e=>e.start&&(e.company||e.role));
+  if(!exps.length) return null;
+  let earliest = null;
+  exps.forEach(e=>{
+    const yr = parseInt((e.start||'').match(/\d{4}/)?.[0]);
+    if(yr && (!earliest || yr < earliest)) earliest = yr;
+  });
+  if(!earliest) return null;
+  return new Date().getFullYear() - earliest;
+}
+
+function getRoleKeywords(){
+  const title = (APP.d.p.title||'').toLowerCase();
+  const keys = new Set();
+  Object.entries(ROLE_KEYWORDS).forEach(([k,v])=>{ if(title.includes(k)) v.forEach(kw=>keys.add(kw)); });
+  if(!keys.size) ROLE_KEYWORDS['developer'].forEach(k=>keys.add(k));
+  return [...keys].slice(0,4);
+}
+
+function localGenerateSummary(){
+  const d = APP.d, p = d.p;
+  const title = p.title || 'Professional';
+  const years = calcYearsExp();
+  const yrsStr = years ? (years >= 10 ? `${years}+ years` : `${years} years`) : 'several years of';
+  const skills = (d.skills||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,4);
+  const skillStr = skills.length >= 2 ? skills.slice(0,-1).join(', ')+' and '+skills[skills.length-1] : skills.join(', ') || 'a broad technical skill set';
+  const company = d.exp.find(e=>e.company)?.company || '';
+  const roleKW = getRoleKeywords();
+  const kwStr = roleKW.length ? roleKW.slice(0,2).join(' and ') : 'software development best practices';
+  const bullets = d.exp.flatMap(e=>(e.bullets||'').split('\n')).filter(b=>b.trim());
+  const hasMetrics = bullets.some(b=>/\d+/.test(b));
+
+  let achievement = '';
+  if(hasMetrics){
+    const metricBullet = bullets.find(b=>/\d+[%$kKmM]|\d+ (users|teams?|projects?|clients?|engineers?)/i.test(b));
+    if(metricBullet) achievement = '. ' + metricBullet.replace(/^[•\-\*]\s*/,'').replace(/^\w/, c=>c.toUpperCase());
+  }
+
+  return `${title} with ${yrsStr} of experience building scalable solutions using ${skillStr}. Proven track record in ${kwStr}, delivering high-quality software that meets business objectives and technical standards${achievement ? achievement : '. Consistently recognized for technical excellence and cross-functional collaboration'}. Committed to writing clean, maintainable code and driving continuous improvement across the full development lifecycle.`;
+}
+
+function localEnhanceBullets(i){
+  const exp = APP.d.exp[i];
+  const existing = (exp.bullets||'').trim();
+  const role = (exp.role||'professional').toLowerCase();
+
+  if(existing){
+    // Enhance existing bullets
+    const lines = existing.split('\n').map(l=>l.trim()).filter(Boolean);
+    const weak = ['responsible for','worked on','helped with','assisted in','duties included','tasked with','involved in'];
+    const enhanced = lines.map(line=>{
+      let l = line.replace(/^[•\-\*]\s*/,'');
+      // Replace weak openings
+      weak.forEach(w=>{ if(l.toLowerCase().startsWith(w)) l = l.slice(w.length).trim(); });
+      // Capitalize and prefix with action verb if doesn't start with one
+      const startsWithVerb = ACTION_VERBS.some(v=>l.toLowerCase().startsWith(v.toLowerCase()));
+      if(!startsWithVerb){
+        const verb = ACTION_VERBS[Math.floor(Math.random()*8)]; // use top 8 strong verbs
+        l = verb + ' ' + l.charAt(0).toLowerCase() + l.slice(1);
+      }
+      // Add metric hint if none exists
+      if(!/\d/.test(l) && l.length > 20){
+        const hints = [', improving efficiency by 20%+',', reducing turnaround time significantly',', serving thousands of users',', resulting in measurable performance gains'];
+        // only add hint 50% of the time to avoid being repetitive
+        if(Math.random()>0.5) l += hints[Math.floor(Math.random()*hints.length)];
+      }
+      return '• ' + l.charAt(0).toUpperCase() + l.slice(1);
+    });
+    return enhanced.join('\n');
+  } else {
+    // Generate from role
+    const isManager = /manager|lead|head|director/i.test(role);
+    const isFrontend = /frontend|front.end|ui|react|vue|angular/i.test(role);
+    const isBackend = /backend|back.end|api|server|devops/i.test(role);
+    const skillTags = (APP.d.skills||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,3);
+    const sk = skillTags.length ? skillTags.join(', ') : 'core technologies';
+
+    if(isManager) return [
+      `• Led a team of engineers, driving delivery of key product milestones on time and within scope`,
+      `• Established coding standards and review processes, improving code quality and reducing post-release defects by 30%`,
+      `• Collaborated with product and design stakeholders to align technical roadmap with business goals`,
+      `• Mentored junior engineers through regular 1-on-1s and technical guidance, accelerating their growth`
+    ].join('\n');
+
+    if(isFrontend) return [
+      `• Engineered responsive, high-performance UI components using ${sk}, improving page load speed by 35%`,
+      `• Delivered pixel-perfect implementations from design specs, reducing design-dev handoff cycles by 40%`,
+      `• Optimized front-end bundle size and lazy loading strategies, achieving 90+ Lighthouse performance scores`,
+      `• Collaborated with backend team to define and consume RESTful APIs, shipping 3 major features per quarter`
+    ].join('\n');
+
+    if(isBackend) return [
+      `• Designed and deployed scalable REST APIs using ${sk}, processing 500K+ requests daily with 99.9% uptime`,
+      `• Optimized database queries and implemented caching strategies, reducing average response time by 45%`,
+      `• Architected microservices infrastructure, enabling independent deployment and improving system resilience`,
+      `• Implemented automated test suites achieving 85%+ code coverage, reducing regression bugs by 60%`
+    ].join('\n');
+
+    return [
+      `• Developed and maintained production applications using ${sk}, supporting thousands of daily active users`,
+      `• Collaborated in agile sprints to deliver features on schedule, maintaining high code quality standards`,
+      `• Identified and resolved critical performance bottlenecks, improving system throughput by 30%`,
+      `• Contributed to architecture discussions and technical documentation, improving team knowledge-sharing`
+    ].join('\n');
+  }
+}
+
+
+
+
+/* ══════════════════════════════════════════════
+   ATS SCORING
+══════════════════════════════════════════════ */
+function atsScore(){
+  const {p, summary, exp, edu, skills, certs, langs} = APP.d;
+  let s = 0;
+  if(p.name.trim()) s+=8;
+  if(p.email.trim()) s+=7;
+  if(p.phone.trim()) s+=4;
+  if(p.location.trim()) s+=3;
+  if(p.linkedin.trim()) s+=3;
+  const sl = summary.trim().length;
+  if(sl>150) s+=15; else if(sl>80) s+=10; else if(sl>30) s+=5;
+  const vE = exp.filter(e=>e.role||e.company);
+  if(vE.length>=1) s+=10;
+  if(vE.length>=2) s+=5;
+  const wB = vE.filter(e=>e.bullets&&e.bullets.trim().length>60);
+  if(wB.length>=1) s+=8;
+  if(wB.length>=2) s+=4;
+  if(wB.some(e=>/\d/.test(e.bullets))) s+=8;
+  if(edu.some(e=>e.school||e.degree)) s+=10;
+  const sk=(skills||'').split(/[,\n]/).filter(s=>s.trim()).length;
+  if(sk>=8) s+=10; else if(sk>=5) s+=7; else if(sk>=3) s+=4;
+  if(certs&&certs.trim().length>5) s+=3;
+  return Math.min(s,100);
+}
+
+function atsBreakdown(){
+  const {p, summary, exp, edu, skills, certs} = APP.d;
+  const items = [];
+  if(!p.name.trim()||!p.email.trim()||!p.phone.trim())
+    items.push({ok:false, label:'Complete contact info (name, email, phone)'});
+  if(!p.linkedin.trim())
+    items.push({ok:false, label:'Add LinkedIn URL (+3 pts)'});
+  items.push({ok:summary.trim().length>150, label:'Professional summary (150+ chars)'});
+  const vE=exp.filter(e=>e.role||e.company);
+  items.push({ok:vE.length>=2, label:'At least 2 work experience entries'});
+  const wB=vE.filter(e=>e.bullets&&e.bullets.trim().length>60);
+  items.push({ok:wB.length>=2, label:'Detailed bullets in experience entries'});
+  items.push({ok:vE.some(e=>/\d/.test(e.bullets||'')), label:'Quantified achievements (numbers, %)'});
+  const sk=(skills||'').split(/[,\n]/).filter(s=>s.trim()).length;
+  items.push({ok:sk>=8, label:`8+ technical skills listed (you have ${sk})`});
+  items.push({ok:edu.some(e=>e.school||e.degree), label:'Education section completed'});
+  return items;
+}
+
+function renderATS(){
+  const s=atsScore();
+  const fill=document.getElementById('ats-fill'), num=document.getElementById('ats-num');
+  const col=s>=80?'#45D483':s>=60?'#F0A840':'#F06060';
+  if(fill){fill.style.width=s+'%';fill.style.background=col;}
+  if(num){num.textContent=s+'/100';num.style.color=col;}
+  const panel=document.getElementById('ats-tips');
+  if(panel){
+    const incomplete=atsBreakdown().filter(i=>!i.ok);
+    panel.innerHTML=incomplete.length===0
+      ? `<div style="color:var(--ok);font-size:11.5px;font-weight:600">✓ Great score! Your resume is ATS-ready at ${s}/100.</div>`
+      : `<div style="font-size:10.5px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">💡 Improve your ATS score</div>`
+        + incomplete.slice(0,3).map(i=>`<div style="display:flex;gap:7px;margin-bottom:5px;font-size:11.5px;color:var(--tm)"><span style="color:var(--warn);flex-shrink:0">○</span>${i.label}</div>`).join('');
+  }
+}
+
+/* ══════════════════════════════════════════════
+   CRUD
+══════════════════════════════════════════════ */
+function addExp(){ APP.d.exp.push({id:Date.now(),role:'',company:'',start:'',end:'',current:false,bullets:''}); renderStep(); }
+function rmExp(i){ APP.d.exp.splice(i,1); renderStep(); renderResume(); }
+function addEdu(){ APP.d.edu.push({id:Date.now(),degree:'',field:'',school:'',start:'',end:'',gpa:''}); renderStep(); }
+function rmEdu(i){ APP.d.edu.splice(i,1); renderStep(); renderResume(); }
+function addProj(){ APP.d.projects.push({id:Date.now(),name:'',url:'',tech:'',desc:''}); renderStep(); }
+function rmProj(i){ APP.d.projects.splice(i,1); renderStep(); renderResume(); }
+
+/* ══════════════════════════════════════════════
+   DOWNLOADS
+══════════════════════════════════════════════ */
+
+function dlPDF(){
+  const wrap = document.getElementById('resume-wrap');
+  if(!wrap || !wrap.innerHTML.trim()){ alert('Add some details first then try again.'); return; }
+
+  const name = (APP.d.p.name || 'Resume').replace(/\s+/g, '_');
+
+  // Read CSS from the live <style> tag — avoids ALL escaping issues
+  const styleEl = document.querySelector('style');
+  const css = styleEl ? styleEl.textContent : '';
+
+  const printDoc = [
+    '<!DOCTYPE html><html><head>',
+    '<meta charset="UTF-8">',
+    '<title>' + name + ' Resume</title>',
+    '<style>',
+    css,
+    '@page { size: A4; margin: 0; }',
+    'body { margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+    '</style>',
+    '</head><body>',
+    wrap.innerHTML,
+    '</body></html>'
+  ].join('');
+
+  const blob = new Blob([printDoc], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const pw   = window.open(url, '_blank');
+
+  if (!pw) {
+    alert('Pop-ups are blocked.\n\nAllow pop-ups for this page in your browser then click PDF again.');
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  pw.addEventListener('load', function () {
+    setTimeout(function () {
+      pw.print();
+      setTimeout(function () { pw.close(); URL.revokeObjectURL(url); }, 1500);
+    }, 400);
+  });
+}
+
+function dlWord(){
+  const name=(APP.d.p.name||'Resume').replace(/\s+/g,'_');
+  const wrap=document.getElementById('resume-wrap'); if(!wrap) return;
+  const blob=new Blob([`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><style>
+body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;color:#111;margin:24pt 32pt}
+.T1-hdr,.T2-sb,.T4-hdr{color:white;padding:18pt 26pt}
+.T1-name,.T2-nm,.T4-nm{font-size:22pt;font-weight:bold}
+.T1-sh,.T2-sh,.T3-sh,.T4-sh,.T5-sh,.T6-sh{font-size:9pt;font-weight:bold;text-transform:uppercase;border-bottom:1pt solid #333;padding-bottom:3pt;margin:10pt 0 5pt}
+.T1-role,.T2-role,.T3-role,.T4-role,.T5-role,.T6-role{font-weight:bold;font-size:10.5pt}
+.T1-ul,.T2-ul,.T3-ul,.T4-ul,.T5-ul,.T6-ul{margin-left:14pt;font-size:9.5pt}
+li{margin-bottom:2pt}
+.T1-tag,.T4-tag,.T6-tag{border:1pt solid #CCC;padding:1pt 5pt;font-size:8.5pt;display:inline-block;margin:2pt}
+.T2{display:block}.T2-sb{float:left;width:30%;min-height:500pt;font-size:8.5pt}.T2-main{margin-left:33%}
+.T5{background:#FFFEF9}.T5-top{text-align:center;border-bottom:1pt solid #111;padding-bottom:12pt;margin-bottom:12pt}
+.T6-hdr{border-left:4pt solid #0F2952;padding-left:12pt}
+.T3,.T5{padding:24pt 30pt}
+</style></head><body>${wrap.innerHTML}</body></html>`],
+  {type:'application/msword'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name+'_Resume.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+renderAll();
+renderResume();
+updateApiBtn();
+</script>
+</body>
+</html>
